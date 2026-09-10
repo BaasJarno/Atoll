@@ -27,7 +27,7 @@ Thank you for your interest in contributing to Atoll! We welcome contributions f
 3. **Make your changes** following the guidelines below.
 4. **Test your changes** to ensure they work as expected and do not break existing functionality.
 5. **Commit** with clear, descriptive messages.
-6. **Push** to your fork and submit a **pull request** (PR) to the `main` branch.
+6. **Push** to your fork and submit a **pull request** (PR) to the `dev` branch.
 7. **Participate in code review** and address any feedback.
 
 ## Code of Conduct
@@ -53,7 +53,7 @@ We are committed to fostering a welcoming and inclusive environment. Please read
 
 ## Pull Request Process
 
-- Ensure your branch is up to date with `main` before submitting a PR.
+- Ensure your branch is up to date with `dev` before submitting a PR.
 - Provide a clear description of your changes and the motivation behind them.
 - Reference any related issues or discussions.
 - Add screenshots or screen recordings for UI changes.
