@@ -99,7 +99,7 @@ class BatteryStatusViewModel: ObservableObject {
             }
 
         case .batteryLevelChanged(let level):
-            print("🔋 Battery level: \(Int(level))%")
+            Logger.log("Battery level: \(Int(level))%", category: .debug)
             let previousLevel = self.levelBattery
             withAnimation {
                 self.levelBattery = level
@@ -120,8 +120,8 @@ class BatteryStatusViewModel: ObservableObject {
 
         case .isChargingChanged(let isCharging):
             print("🔌 Charging: \(isCharging ? "Yes" : "No")")
-            print("maxCapacity: \(self.maxCapacity)")
-            print("levelBattery: \(self.levelBattery)")
+            Logger.log("maxCapacity: \(self.maxCapacity)", category: .debug)
+            Logger.log("levelBattery: \(self.levelBattery)", category: .debug)
             withAnimation {
                 self.isCharging = isCharging
                 self.statusText =
@@ -131,19 +131,19 @@ class BatteryStatusViewModel: ObservableObject {
             }
 
         case .timeToFullChargeChanged(let time):
-            print("🕒 Time to full charge: \(time) minutes")
+            Logger.log("Time to full charge: \(time) minutes", category: .debug)
             withAnimation {
                 self.timeToFullCharge = time
             }
 
         case .maxCapacityChanged(let capacity):
-            print("🔋 Max capacity: \(capacity)")
+            Logger.log("Max capacity: \(capacity)", category: .debug)
             withAnimation {
                 self.maxCapacity = capacity
             }
 
         case .error(let description):
-            print("⚠️ Error: \(description)")
+            Logger.log("Error: \(description)", category: .warning)
         }
     }
 
@@ -291,7 +291,7 @@ class BatteryStatusViewModel: ObservableObject {
     }
 
     deinit {
-        print("🔌 Cleaning up battery monitoring...")
+        Logger.log("Cleaning up battery monitoring...", category: .debug)
         if let managerBatteryId: Int = managerBatteryId {
             managerBattery.removeObserver(byId: managerBatteryId)
         }

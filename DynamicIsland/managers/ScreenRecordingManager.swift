@@ -35,7 +35,7 @@ func CGSRegisterNotifyProc(
 
 private func screenRecordingDebugLog(_ message: String) {
 #if DEBUG
-    print("ScreenRecordingManager: \(message)")
+    Logger.log("ScreenRecordingManager: \(message)", category: .debug)
 #endif
 }
 

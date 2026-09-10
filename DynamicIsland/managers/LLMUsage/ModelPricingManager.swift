@@ -110,9 +110,9 @@ class ModelPricingManager: ObservableObject {
             do {
                 let data = try Data(contentsOf: localURL)
                 self.pricingData = try JSONDecoder().decode(ModelPricingData.self, from: data)
-                print("✅ ModelPricingManager: Loaded bundled pricing fallback")
+                Logger.log("ModelPricingManager: Loaded bundled pricing fallback", category: .success)
             } catch {
-                print("❌ ModelPricingManager: Failed to load bundled pricing: \(error)")
+                Logger.log("ModelPricingManager: Failed to load bundled pricing: \(error)", category: .error)
             }
         } else {
             // Check flat manager path if subdirectory lookup fails
@@ -120,9 +120,9 @@ class ModelPricingManager: ObservableObject {
                 do {
                     let data = try Data(contentsOf: localURL)
                     self.pricingData = try JSONDecoder().decode(ModelPricingData.self, from: data)
-                    print("✅ ModelPricingManager: Loaded bundled pricing from flat path")
+                    Logger.log("ModelPricingManager: Loaded bundled pricing from flat path", category: .success)
                 } catch {
-                    print("❌ ModelPricingManager: Failed to load bundled pricing (flat): \(error)")
+                    Logger.log("ModelPricingManager: Failed to load bundled pricing (flat): \(error)", category: .error)
                 }
             }
         }
@@ -138,7 +138,7 @@ class ModelPricingManager: ObservableObject {
             let (data, response) = try await session.data(from: remoteURL)
             
             guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                print("⚠️ ModelPricingManager: Remote fetch returned non-200 status")
+                Logger.log("ModelPricingManager: Remote fetch returned non-200 status", category: .warning)
                 return
             }
             
@@ -149,10 +149,10 @@ class ModelPricingManager: ObservableObject {
                 // workflow that only tracks a fixed model list), so merge rather than replace:
                 // remote rows with real prices win, bundled rows fill in everything else.
                 self.pricingData = Self.merge(bundled: self.pricingData, remote: decoded)
-                print("✅ ModelPricingManager: Successfully merged pricing from remote")
+                Logger.log("ModelPricingManager: Successfully merged pricing from remote", category: .success)
             }
         } catch {
-            print("⚠️ ModelPricingManager: Failed to fetch remote pricing (using local/cached): \(error)")
+            Logger.log("ModelPricingManager: Failed to fetch remote pricing (using local/cached): \(error)", category: .warning)
         }
     }
     

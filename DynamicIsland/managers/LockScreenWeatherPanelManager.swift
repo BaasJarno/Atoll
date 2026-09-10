@@ -189,7 +189,7 @@ final class LockScreenWeatherPanelManager {
     private func handleScreenGeometryChange(reason: String) {
         guard window?.isVisible == true else { return }
         refreshPositionForOffsets(animated: false)
-        print("LockScreenWeatherPanelManager: realigned window due to \(reason)")
+        Logger.log("LockScreenWeatherPanelManager: realigned window due to \(reason)", category: .debug)
     }
 
     private func currentScreen() -> NSScreen? {

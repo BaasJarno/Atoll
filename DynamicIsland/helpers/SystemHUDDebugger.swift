@@ -22,14 +22,14 @@ class SystemHUDDebugger {
     
     /// Test system HUD functionality and print status
     public static func testSystemHUD() {
-        print("\n🔍 === System HUD Debug Report ===")
+        Logger.log("\n🔍 === System HUD Debug Report ===", category: .debug)
         
         // Check current OSDUIHelper status
         let isRunning = SystemOSDManager.isOSDUIHelperRunning()
         print("📊 OSDUIHelper Status: \(isRunning ? "✅ Running" : "❌ Not running")")
         
         // Test disable
-        print("🔇 Testing disable...")
+        Logger.log("Testing disable...", category: .debug)
         SystemOSDManager.disableSystemHUD()
         
         // Wait and check
@@ -38,7 +38,7 @@ class SystemHUDDebugger {
         print("📊 After disable: \(isRunningAfterDisable ? "✅ Running (stopped)" : "❌ Not running")")
         
         // Test enable
-        print("🔊 Testing re-enable...")
+        Logger.log("Testing re-enable...", category: .debug)
         SystemOSDManager.enableSystemHUD()
         
         // Wait and check
@@ -46,17 +46,17 @@ class SystemHUDDebugger {
         let isRunningAfterEnable = SystemOSDManager.isOSDUIHelperRunning()
         print("📊 After re-enable: \(isRunningAfterEnable ? "✅ Running" : "❌ Not running")")
         
-        print("🔍 === End Debug Report ===\n")
+        Logger.log("=== End Debug Report ===\n", category: .debug)
         
         if !isRunningAfterEnable {
-            print("⚠️  WARNING: System HUD may not be working properly!")
-            print("💡 Try pressing volume keys to test system HUD functionality")
+            Logger.log("WARNING: System HUD may not be working properly!", category: .warning)
+            Logger.log("Try pressing volume keys to test system HUD functionality", category: .debug)
         }
     }
     
     /// Force restart OSDUIHelper using multiple methods
     public static func forceRestartOSDUIHelper() {
-        print("🔄 Force restarting OSDUIHelper...")
+        Logger.log("Force restarting OSDUIHelper...", category: .lifecycle)
         
         // Method 1: Kill and kickstart
         SystemOSDManager.enableSystemHUD()
@@ -68,9 +68,9 @@ class SystemHUDDebugger {
             bootstrap.arguments = ["bootstrap", "gui/\(getuid())", "/System/Library/LaunchAgents/com.apple.OSDUIHelper.plist"]
             try bootstrap.run()
             bootstrap.waitUntilExit()
-            print("✅ Bootstrap method completed")
+            Logger.log("Bootstrap method completed", category: .success)
         } catch {
-            print("❌ Bootstrap method failed: \(error)")
+            Logger.log("Bootstrap method failed: \(error)", category: .error)
         }
         
         // Method 3: Try direct service restart
@@ -80,9 +80,9 @@ class SystemHUDDebugger {
             restart.arguments = ["restart", "gui/\(getuid())/com.apple.OSDUIHelper"]
             try restart.run()
             restart.waitUntilExit()
-            print("✅ Restart method completed")
+            Logger.log("Restart method completed", category: .success)
         } catch {
-            print("❌ Restart method failed: \(error)")
+            Logger.log("Restart method failed: \(error)", category: .error)
         }
         
         // Check final status

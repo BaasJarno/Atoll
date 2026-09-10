@@ -724,9 +724,9 @@ class MusicManager: ObservableObject {
         Task { @MainActor in
             do {
                 self.isNowPlayingDeprecated = try await self.mediaChecker.checkDeprecationStatus()
-                print("Deprecation check completed: \(self.isNowPlayingDeprecated)")
+                Logger.log("Deprecation check completed: \(self.isNowPlayingDeprecated)", category: .warning)
             } catch {
-                print("Failed to check deprecation status: \(error). Defaulting to false.")
+                Logger.log("Failed to check deprecation status: \(error). Defaulting to false.", category: .error)
                 self.isNowPlayingDeprecated = false
             }
             
@@ -736,7 +736,7 @@ class MusicManager: ObservableObject {
             }
             
             if pearDesktopRunning {
-                print("[MusicManager] Pear Desktop detected at startup, auto-switching to YouTubeMusicController")
+                Logger.log("[MusicManager] Pear Desktop detected at startup, auto-switching to YouTubeMusicController", category: .debug)
                 self.isPearDesktopAutoSwitched = true
                 if let controller = self.createController(for: .youtubeMusic) {
                     self.setActiveController(controller)
@@ -756,7 +756,7 @@ class MusicManager: ObservableObject {
                       let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
                       app.bundleIdentifier == Self.pearDesktopBundleID else { return }
 
-                print("[MusicManager] Pear Desktop launched, auto-switching to YouTubeMusicController")
+                Logger.log("[MusicManager] Pear Desktop launched, auto-switching to YouTubeMusicController", category: .debug)
                 self.isPearDesktopAutoSwitched = true
                 if let controller = self.createController(for: .youtubeMusic) {
                     self.setActiveController(controller)
@@ -770,7 +770,7 @@ class MusicManager: ObservableObject {
                       let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
                       app.bundleIdentifier == Self.pearDesktopBundleID else { return }
 
-                print("[MusicManager] Pear Desktop terminated, reverting to preferred controller")
+                Logger.log("[MusicManager] Pear Desktop terminated, reverting to preferred controller", category: .debug)
                 if self.isPearDesktopAutoSwitched {
                     self.isPearDesktopAutoSwitched = false
                     self.setActiveControllerBasedOnPreference()
@@ -848,7 +848,7 @@ class MusicManager: ObservableObject {
 
     private func setActiveControllerBasedOnPreference() {
         let preferredType = Defaults[.mediaController]
-        print("Preferred Media Controller: \(preferredType)")
+        Logger.log("Preferred Media Controller: \(preferredType)", category: .debug)
 
         // If NowPlaying is deprecated but that's the preference, use Apple Music instead
         let controllerType = (self.isNowPlayingDeprecated && preferredType == .nowPlaying)
@@ -1696,7 +1696,7 @@ class MusicManager: ObservableObject {
 
     func openMusicApp() {
         guard let bundleID = bundleIdentifier else {
-            print("Error: appBundleIdentifier is nil")
+            Logger.log("Error: appBundleIdentifier is nil", category: .error)
             return
         }
 
@@ -1705,13 +1705,13 @@ class MusicManager: ObservableObject {
             let configuration = NSWorkspace.OpenConfiguration()
             workspace.openApplication(at: appURL, configuration: configuration) { (_, error) in
                 if let error = error {
-                    print("Failed to launch app with bundle ID: \(bundleID), error: \(error)")
+                    Logger.log("Failed to launch app with bundle ID: \(bundleID), error: \(error)", category: .error)
                 } else {
-                    print("Launched app with bundle ID: \(bundleID)")
+                    Logger.log("Launched app with bundle ID: \(bundleID)", category: .debug)
                 }
             }
         } else {
-            print("Failed to find app with bundle ID: \(bundleID)")
+            Logger.log("Failed to find app with bundle ID: \(bundleID)", category: .error)
         }
     }
 
@@ -1843,7 +1843,7 @@ class MusicManager: ObservableObject {
                     self.applyLyricsToDisplay(lyrics)
                 }
             } catch {
-                print("Failed to fetch lyrics: \(error)")
+                Logger.log("Failed to fetch lyrics: \(error)", category: .error)
                 await MainActor.run {
                     guard self.lyricsFetchID == fetchID, self.activeLyricsKey == key else { return }
                     self.lyricsFetchKey = nil

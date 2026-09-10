@@ -128,7 +128,7 @@ final class YouTubeMusicController: MediaControllerProtocol {
         } catch YouTubeMusicError.authenticationRequired {
             await authManager.invalidateToken()
         } catch {
-            print("[YouTubeMusicController] Failed to update playback info: \(error)")
+            Logger.log("[YouTubeMusicController] Failed to update playback info: \(error)", category: .error)
         }
     }
     
@@ -196,14 +196,14 @@ final class YouTubeMusicController: MediaControllerProtocol {
             await startPeriodicUpdates()
             await updatePlaybackInfo()
         } catch {
-            print("[YouTubeMusicController] Failed to initialize: \(error)")
+            Logger.log("[YouTubeMusicController] Failed to initialize: \(error)", category: .error)
             await scheduleReconnect()
         }
     }
     
     private func setupWebSocketIfPossible(token: String) async {
         guard let wsURL = WebSocketURLBuilder.buildURL(from: configuration.baseURL, with: token) else {
-            print("[YouTubeMusicController] Failed to build WebSocket URL")
+            Logger.log("[YouTubeMusicController] Failed to build WebSocket URL", category: .error)
             return
         }
         
@@ -227,7 +227,7 @@ final class YouTubeMusicController: MediaControllerProtocol {
             stopPeriodicUpdates() // WebSocket will provide real-time updates
             // Do NOT reset reconnectDelay here - wait for authenticated message
         } catch {
-            print("[YouTubeMusicController] WebSocket connection failed: \(error)")
+            Logger.log("[YouTubeMusicController] WebSocket connection failed: \(error)", category: .error)
             await scheduleReconnect()
         }
     }
@@ -386,7 +386,7 @@ final class YouTubeMusicController: MediaControllerProtocol {
         } catch YouTubeMusicError.authenticationRequired {
             await authManager.invalidateToken()
         } catch {
-            print("[YouTubeMusicController] Command failed: \(error)")
+            Logger.log("[YouTubeMusicController] Command failed: \(error)", category: .error)
         }
     }
     

@@ -75,7 +75,7 @@ class ScreenshotSnippingTool: NSObject, ObservableObject {
     func startSnipping(type: ScreenshotType = .area, completion: @escaping (URL) -> Void) {
         guard !isSnipping else { return }
         
-        print("🖼️ ScreenshotTool: Starting \(type.displayName.lowercased()) screenshot using screencapture tool")
+        Logger.log("ScreenshotTool: Starting \(type.displayName.lowercased()) screenshot using screencapture tool", category: .debug)
         self.completion = completion
         isSnipping = true
         
@@ -109,36 +109,36 @@ class ScreenshotSnippingTool: NSObject, ObservableObject {
             
             // Process completed - check if successful
             if task.terminationStatus == 0 {
-                print("✅ ScreenshotTool: screencapture completed successfully")
+                Logger.log("ScreenshotTool: screencapture completed successfully", category: .success)
                 getImageFromPasteboard()
             } else {
-                print("❌ ScreenshotTool: screencapture failed with status: \(task.terminationStatus)")
+                Logger.log("ScreenshotTool: screencapture failed with status: \(task.terminationStatus)", category: .error)
                 finishSnipping()
             }
             
         } catch {
-            print("❌ ScreenshotTool: Failed to run screencapture: \(error)")
+            Logger.log("ScreenshotTool: Failed to run screencapture: \(error)", category: .error)
             finishSnipping()
         }
     }
     
     // MARK: - Pasteboard Integration (ScreenshotApp Pattern)
     private func getImageFromPasteboard() {
-        print("� ScreenshotTool: Checking pasteboard for screenshot")
+        Logger.log("ScreenshotTool: Checking pasteboard for screenshot", category: .debug)
         
         guard NSPasteboard.general.canReadItem(withDataConformingToTypes: NSImage.imageTypes) else {
-            print("❌ ScreenshotTool: No image data in pasteboard")
+            Logger.log("ScreenshotTool: No image data in pasteboard", category: .error)
             finishSnipping()
             return
         }
         
         guard let image = NSImage(pasteboard: NSPasteboard.general) else {
-            print("❌ ScreenshotTool: Failed to create NSImage from pasteboard")
+            Logger.log("ScreenshotTool: Failed to create NSImage from pasteboard", category: .error)
             finishSnipping()
             return
         }
         
-        print("✅ ScreenshotTool: Got image from pasteboard: \(image.size)")
+        Logger.log("ScreenshotTool: Got image from pasteboard: \(image.size)", category: .success)
         saveImageAndComplete(image: image)
     }
     
@@ -158,14 +158,14 @@ class ScreenshotSnippingTool: NSObject, ObservableObject {
         guard let imageData = image.tiffRepresentation,
               let bitmapRep = NSBitmapImageRep(data: imageData),
               let pngData = bitmapRep.representation(using: NSBitmapImageRep.FileType.png, properties: [:]) else {
-            print("❌ ScreenshotTool: Failed to convert image to PNG")
+            Logger.log("ScreenshotTool: Failed to convert image to PNG", category: .error)
             finishSnipping()
             return
         }
         
         do {
             try pngData.write(to: screenshotURL)
-            print("✅ ScreenshotTool: Screenshot saved to: \(screenshotURL.path)")
+            Logger.log("ScreenshotTool: Screenshot saved to: \(screenshotURL.path)", category: .success)
             
             // Execute completion callback
             let callback = self.completion
@@ -178,24 +178,24 @@ class ScreenshotSnippingTool: NSObject, ObservableObject {
             }
             
         } catch {
-            print("❌ ScreenshotTool: Failed to save image: \(error)")
+            Logger.log("ScreenshotTool: Failed to save image: \(error)", category: .error)
             finishSnipping()
         }
     }
     
     // MARK: - State Management
     private func finishSnipping() {
-        print("🔄 ScreenshotTool: Finishing snipping process")
+        Logger.log("ScreenshotTool: Finishing snipping process", category: .lifecycle)
         
         DispatchQueue.main.async {
             self.isSnipping = false
             self.completion = nil
-            print("✅ ScreenshotTool: Snipping process completed")
+            Logger.log("ScreenshotTool: Snipping process completed", category: .success)
         }
     }
     
     func cancelSnipping() {
-        print("❌ ScreenshotTool: Snipping cancelled")
+        Logger.log("ScreenshotTool: Snipping cancelled", category: .error)
         finishSnipping()
     }
 }

@@ -1718,10 +1718,10 @@ struct LockScreenMusicPanel: View {
             modeDescription = lockScreenGlassStyle.rawValue
         }
 
-        print("[LockScreenMusicPanel] \(reason) – customization=\(glassCustomizationMode.rawValue), mode=\(modeDescription), components[\(componentSummary)], macOS \(currentOSVersionDescription())")
+        Logger.log("[LockScreenMusicPanel] \(reason) – customization=\(glassCustomizationMode.rawValue), mode=\(modeDescription), components[\(componentSummary)], macOS \(currentOSVersionDescription())", category: .debug)
 
         if glassCustomizationMode == .standard && lockScreenGlassStyle == .liquid && !usesStandardLiquidGlass {
-            print("[LockScreenMusicPanel] Liquid Glass requested but unavailable on this macOS build. Falling back to frosted visuals.")
+            Logger.log("[LockScreenMusicPanel] Liquid Glass requested but unavailable on this macOS build. Falling back to frosted visuals.", category: .warning)
         }
     }
 
@@ -1734,7 +1734,7 @@ struct LockScreenMusicPanel: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss.SSS"
         let styleDescriptor = usesLiquidGlass ? "Liquid Glass" : "Frosted"
-        print("[\(formatter.string(from: Date()))] LockScreenMusicPanel: \(event) – \(styleDescriptor)")
+        Logger.log("[\(formatter.string(from: Date()))] LockScreenMusicPanel: \(event) – \(styleDescriptor)", category: .debug)
     }
 }
 

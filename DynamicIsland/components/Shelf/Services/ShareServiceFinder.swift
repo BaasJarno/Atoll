@@ -55,7 +55,7 @@ class ShareServiceFinder: NSObject, NSSharingServicePickerDelegate {
                 try? await Task.sleep(for: .seconds(timeout))
                 guard !didResume else { return }
                 didResume = true
-                print("Warning: timed out waiting for sharing services")
+                Logger.log("Warning: timed out waiting for sharing services", category: .warning)
                 continuation.resume(returning: [])
             }
         }

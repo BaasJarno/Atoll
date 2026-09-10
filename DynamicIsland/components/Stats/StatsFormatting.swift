@@ -36,6 +36,33 @@ enum StatsFormatting {
         return "\(formatted) MB/s"
     }
 
+    /// A throughput reading short enough to sit on a notch card's title row,
+    /// where roughly 100 points have to hold both directions: `12.3M`, `340K`,
+    /// `0`. The unit is one letter and the per-second part is dropped, which
+    /// the surrounding arrows or R/W labels already imply. `throughput(_:)`
+    /// stays the spelled-out form for the detail panels, which have the room.
+    static func compactThroughput(_ valueInMegabytesPerSecond: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+
+        if valueInMegabytesPerSecond >= 1 {
+            formatter.maximumFractionDigits = valueInMegabytesPerSecond >= 10 ? 0 : 1
+            let formatted = formatter.string(from: NSNumber(value: valueInMegabytesPerSecond))
+                ?? String(format: valueInMegabytesPerSecond >= 10 ? "%.0f" : "%.1f", valueInMegabytesPerSecond)
+            return "\(formatted)M"
+        }
+
+        let valueInKilobytesPerSecond = valueInMegabytesPerSecond * 1024
+        if valueInKilobytesPerSecond >= 1 {
+            formatter.maximumFractionDigits = 0
+            let formatted = formatter.string(from: NSNumber(value: valueInKilobytesPerSecond))
+                ?? String(format: "%.0f", valueInKilobytesPerSecond)
+            return "\(formatted)K"
+        }
+
+        return "0"
+    }
+
     static func throughput(_ valueInMegabytesPerSecond: Double) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal

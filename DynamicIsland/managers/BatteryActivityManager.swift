@@ -286,16 +286,16 @@ class BatteryActivityManager {
             return batteryInfo
             
         } catch BatteryError.powerSourceUnavailable {
-            print("⚠️ Error: Power source information unavailable")
+            Logger.log("Error: Power source information unavailable", category: .warning)
             return defaultBatteryInfo
         } catch BatteryError.batteryInfoUnavailable(let reason) {
-            print("⚠️ Error: Battery information unavailable - \(reason)")
+            Logger.log("Error: Battery information unavailable - \(reason)", category: .warning)
             return defaultBatteryInfo
         } catch BatteryError.batteryParameterMissing(let parameter) {
-            print("⚠️ Error: Battery parameter missing - \(parameter)")
+            Logger.log("Error: Battery parameter missing - \(parameter)", category: .warning)
             return defaultBatteryInfo
         } catch {
-            print("⚠️ Error: Unexpected error getting battery info - \(error.localizedDescription)")
+            Logger.log("Error: Unexpected error getting battery info - \(error.localizedDescription)", category: .warning)
             return defaultBatteryInfo
         }
     }

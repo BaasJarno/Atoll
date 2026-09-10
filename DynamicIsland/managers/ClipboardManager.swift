@@ -101,7 +101,7 @@ struct ClipboardItem: Identifiable, Codable {
             self.imageFileName = fileName
             self.preview = "Image (\(sizeDescription))"
         } catch {
-            print("Failed to save image data: \(error)")
+            Logger.log("Failed to save image data: \(error)", category: .error)
             self.imageFileName = nil
             self.preview = "Image (failed to save)"
         }
@@ -218,6 +218,10 @@ class ClipboardManager: ObservableObject {
     private var dragResetWork: DispatchWorkItem?
 
     private var timer: Timer?
+    /// Set while the poll is parked for the lock screen. Kept apart from
+    /// `isMonitoring`, which says whether the user has the feature switched on
+    /// at all and is read by views to decide whether to start it.
+    private var isSuspendedForLock = false
     private var lastChangeCount: Int = 0
     private var persistenceCancellable: AnyCancellable?
     
@@ -373,17 +377,53 @@ class ClipboardManager: ObservableObject {
     
     func startMonitoring() {
         guard !isMonitoring else { return }
-        
+
         isMonitoring = true
+        isSuspendedForLock = false
+        startPollTimer()
+    }
+
+    func stopMonitoring() {
+        isMonitoring = false
+        isSuspendedForLock = false
+        timer?.invalidate()
+        timer = nil
+    }
+
+    /// `NSPasteboard` publishes no change notification, so the only way to
+    /// notice a copy is to keep asking for `changeCount`. That is twice a
+    /// second for as long as the app runs, and nothing can be copied while the
+    /// Mac is locked, so the poll is parked for the duration instead of waking
+    /// the process behind the lock screen.
+    ///
+    /// `isMonitoring` deliberately stays `true` across a suspension: it means
+    /// "the user has clipboard history switched on", and several views read it
+    /// to decide whether to call `startMonitoring()`. Clearing it here would
+    /// invite one of them to restart the timer we just parked.
+    func handleLockStateChange(isLocked: Bool) {
+        if isLocked {
+            guard isMonitoring, !isSuspendedForLock else { return }
+            isSuspendedForLock = true
+            timer?.invalidate()
+            timer = nil
+        } else {
+            guard isSuspendedForLock else { return }
+            isSuspendedForLock = false
+            guard isMonitoring else { return }
+            startPollTimer()
+            // A background process can still write to the pasteboard while the
+            // Mac is locked, so take one reading now rather than waiting for
+            // the next tick. `checkClipboard()` returns immediately when
+            // `changeCount` is unchanged, so this costs nothing when it isn't.
+            checkClipboard()
+        }
+    }
+
+    private func startPollTimer() {
+        timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             self?.checkClipboard()
         }
-    }
-    
-    func stopMonitoring() {
-        isMonitoring = false
-        timer?.invalidate()
-        timer = nil
     }
     
     /// Mark a drag-out as in progress and arm a bounded safety reset. SwiftUI `.onDrag`
@@ -517,7 +557,7 @@ class ClipboardManager: ObservableObject {
             try data.write(to: url)
             return name
         } catch {
-            print("Failed to persist clipboard image: \(error)")
+            Logger.log("Failed to persist clipboard image: \(error)", category: .error)
             return nil
         }
     }

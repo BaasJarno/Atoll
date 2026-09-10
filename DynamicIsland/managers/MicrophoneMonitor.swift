@@ -33,7 +33,7 @@ private func microphonePropertyListener(
     let monitor = Unmanaged<MicrophoneMonitor>.fromOpaque(context).takeUnretainedValue()
     
     DispatchQueue.main.async {
-        print("MicrophoneMonitor: 📢 Microphone property changed")
+        Logger.log("MicrophoneMonitor: 📢 Microphone property changed", category: .debug)
         monitor.checkMicrophoneStatus()
     }
     
@@ -86,26 +86,26 @@ class MicrophoneMonitor: ObservableObject {
     /// Start monitoring microphone usage
     func startMonitoring() {
         guard !isMonitoring else {
-            print("MicrophoneMonitor: Already monitoring, skipping start")
+            Logger.log("MicrophoneMonitor: Already monitoring, skipping start", category: .warning)
             return
         }
         
-        print("MicrophoneMonitor: 🟢 Starting microphone monitoring...")
+        Logger.log("MicrophoneMonitor: 🟢 Starting microphone monitoring...", category: .debug)
         
         isMonitoring = true
         
         // Get default input device
         defaultInputDevice = getDefaultInputDevice()
         guard defaultInputDevice != 0 else {
-            print("MicrophoneMonitor: ⚠️ No input device found")
+            Logger.log("MicrophoneMonitor: ⚠️ No input device found", category: .debug)
             return
         }
         
-        print("MicrophoneMonitor: 🎤 Found input device ID: \(defaultInputDevice)")
+        Logger.log("MicrophoneMonitor: 🎤 Found input device ID: \(defaultInputDevice)", category: .debug)
         
         // Check if property exists
         let propertyExists = checkPropertyExists()
-        print("MicrophoneMonitor: Property exists: \(propertyExists)")
+        Logger.log("MicrophoneMonitor: Property exists: \(propertyExists)", category: .debug)
         
         // Setup event listener
         setupPropertyListener()
@@ -113,17 +113,17 @@ class MicrophoneMonitor: ObservableObject {
         // Check initial state
         checkMicrophoneStatus()
         
-        print("MicrophoneMonitor: ✅ Started monitoring (event-driven only)")
+        Logger.log("MicrophoneMonitor: ✅ Started monitoring (event-driven only)", category: .debug)
     }
     
     /// Stop monitoring microphone usage
     func stopMonitoring() {
         guard isMonitoring else {
-            print("MicrophoneMonitor: Not monitoring, skipping stop")
+            Logger.log("MicrophoneMonitor: Not monitoring, skipping stop", category: .warning)
             return
         }
         
-        print("MicrophoneMonitor: 🛑 Stopping monitoring...")
+        Logger.log("MicrophoneMonitor: 🛑 Stopping monitoring...", category: .debug)
         
         isMonitoring = false
         
@@ -138,7 +138,7 @@ class MicrophoneMonitor: ObservableObject {
         }
         activeApp = nil
         
-        print("MicrophoneMonitor: ✅ Stopped monitoring")
+        Logger.log("MicrophoneMonitor: ✅ Stopped monitoring", category: .debug)
     }
     
     /// Toggle monitoring state
@@ -173,7 +173,7 @@ class MicrophoneMonitor: ObservableObject {
         )
         
         if status != noErr {
-            print("MicrophoneMonitor: ⚠️ Failed to get default input device (status: \(status))")
+            Logger.log("MicrophoneMonitor: ⚠️ Failed to get default input device (status: \(status))", category: .error)
             return 0
         }
         
@@ -191,7 +191,7 @@ class MicrophoneMonitor: ObservableObject {
         )
         
         let hasProperty = AudioObjectHasProperty(defaultInputDevice, &address)
-        print("MicrophoneMonitor: Device \(defaultInputDevice) has property: \(hasProperty)")
+        Logger.log("MicrophoneMonitor: Device \(defaultInputDevice) has property: \(hasProperty)", category: .debug)
         
         return hasProperty
     }
@@ -219,9 +219,9 @@ class MicrophoneMonitor: ObservableObject {
         
         if status == noErr {
             isListenerRegistered = true
-            print("MicrophoneMonitor: ✅ Property listener registered")
+            Logger.log("MicrophoneMonitor: ✅ Property listener registered", category: .debug)
         } else {
-            print("MicrophoneMonitor: ⚠️ Failed to register property listener (status: \(status))")
+            Logger.log("MicrophoneMonitor: ⚠️ Failed to register property listener (status: \(status))", category: .error)
         }
     }
     
@@ -246,9 +246,9 @@ class MicrophoneMonitor: ObservableObject {
         
         if status == noErr {
             isListenerRegistered = false
-            print("MicrophoneMonitor: ✅ Property listener removed")
+            Logger.log("MicrophoneMonitor: ✅ Property listener removed", category: .debug)
         } else {
-            print("MicrophoneMonitor: ⚠️ Failed to remove property listener (status: \(status))")
+            Logger.log("MicrophoneMonitor: ⚠️ Failed to remove property listener (status: \(status))", category: .error)
         }
     }
     
@@ -259,22 +259,22 @@ class MicrophoneMonitor: ObservableObject {
         let isRunning = isDeviceRunning(defaultInputDevice)
         
         // Debug logging
-        print("MicrophoneMonitor: 🔍 Checking... current=\(isMicActive), detected=\(isRunning)")
+        Logger.log("MicrophoneMonitor: 🔍 Checking... current=\(isMicActive), detected=\(isRunning)", category: .debug)
         
         // Update state if changed
         if isRunning != isMicActive {
-            print("MicrophoneMonitor: 🔄 State change detected (\(isMicActive) -> \(isRunning))")
+            Logger.log("MicrophoneMonitor: 🔄 State change detected (\(isMicActive) -> \(isRunning))", category: .debug)
             
             withAnimation(.smooth) {
                 isMicActive = isRunning
             }
             
             if isRunning {
-                print("MicrophoneMonitor: 🎤 Microphone ACTIVE")
+                Logger.log("MicrophoneMonitor: 🎤 Microphone ACTIVE", category: .debug)
                 // Could try to identify app here (TODO: investigate)
                 activeApp = "Unknown App"
             } else {
-                print("MicrophoneMonitor: ⚪ Microphone INACTIVE")
+                Logger.log("MicrophoneMonitor: ⚪ Microphone INACTIVE", category: .debug)
                 activeApp = nil
             }
         }
@@ -301,7 +301,7 @@ class MicrophoneMonitor: ObservableObject {
         )
         
         if status != noErr {
-            print("MicrophoneMonitor: ⚠️ Failed to check device running status (status: \(status))")
+            Logger.log("MicrophoneMonitor: ⚠️ Failed to check device running status (status: \(status))", category: .error)
             return false
         }
         

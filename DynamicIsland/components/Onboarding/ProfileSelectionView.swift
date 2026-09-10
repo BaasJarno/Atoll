@@ -294,6 +294,6 @@ private func mainScreenHasNotch() -> Bool {
 
 #Preview {
     ProfileSelectionView(onContinue: { profiles in
-        print("Selected profiles: \(profiles)")
+        Logger.log("Selected profiles: \(profiles)", category: .debug)
     })
 }
