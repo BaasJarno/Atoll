@@ -1385,6 +1385,12 @@ extension Defaults.Keys {
     static let enableSystemHUD = Key<Bool>("enableSystemHUD", default: true)
     static let enableVolumeHUD = Key<Bool>("enableVolumeHUD", default: true)
     static let enableBrightnessHUD = Key<Bool>("enableBrightnessHUD", default: true)
+    /// A brightness button in the notch header, opening a slider.
+    ///
+    /// Separate from `enableBrightnessHUD`, which is the indicator that appears
+    /// when a brightness key is pressed. That one cannot be reached without
+    /// pressing the key first; this one can.
+    static let showBrightnessControl = Key<Bool>("showBrightnessControl", default: true)
     static let enableKeyboardBacklightHUD = Key<Bool>("enableKeyboardBacklightHUD", default: true)
     static let systemHUDSensitivity = Key<Int>("systemHUDSensitivity", default: 5)
     static let playVolumeChangeFeedback = Key<Bool>("playVolumeChangeFeedback", default: false)

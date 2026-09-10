@@ -949,6 +949,19 @@ struct HUD: View {
             }
 
             Section {
+                Defaults.Toggle(key: .showBrightnessControl) {
+                    Text("Show brightness button in the notch")
+                }
+                .settingsHighlight(id: highlightID("Show brightness button in the notch"))
+            } header: {
+                Text("Display Brightness")
+            } footer: {
+                Text("Adds a button to the notch header that opens a brightness slider. Unlike the Brightness HUD above, this can be opened at any time rather than only appearing when a brightness key is pressed.")
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
+            }
+
+            Section {
                 Defaults.Toggle(key: .playVolumeChangeFeedback) {
                     Text("Play feedback when volume is changed")
                 }

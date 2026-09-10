@@ -34,12 +34,15 @@ struct DynamicIslandHeader: View {
     @State private var showTimerPopover = false
     @State private var showPerAppVolumePopover = false
     @State private var showCaffeinatePopover = false
+    @State private var showBrightnessPopover = false
+    @State private var brightnessPopoverToken = UUID()
     @Default(.enableTimerFeature) var enableTimerFeature
     @Default(.timerDisplayMode) var timerDisplayMode
     @Default(.showClipboardIcon) var showClipboardIcon
     @Default(.showColorPickerIcon) var showColorPickerIcon
     @Default(.enablePerAppVolume) var enablePerAppVolume
     @Default(.showPerAppVolumeIcon) var showPerAppVolumeIcon
+    @Default(.showBrightnessControl) var showBrightnessControl
     @Default(.enableCaffeinate) var enableCaffeinate
     @Default(.showCaffeinateIcon) var showCaffeinateIcon
     @Default(.clipboardDisplayMode) var clipboardDisplayMode
@@ -211,6 +214,37 @@ struct DynamicIslandHeader: View {
                         }
                     }
                     
+                    if showBrightnessControl {
+                        Button(action: {
+                            withAnimation(.smooth) {
+                                showBrightnessPopover.toggle()
+                            }
+                        }) {
+                            Capsule()
+                                .fill(.black)
+                                .frame(width: 30, height: 30)
+                                .overlay {
+                                    headerGlyph("sun.max")
+                                }
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .popover(isPresented: $showBrightnessPopover, arrowEdge: .bottom) {
+                            BrightnessControlPopover()
+                        }
+                        .onChange(of: showBrightnessPopover) { isActive in
+                            // The popover is its own window, so the pointer
+                            // moving into it reads as leaving the notch; without
+                            // this the auto-close timer takes the popover with it.
+                            vm.setAutoCloseSuppression(isActive, token: brightnessPopoverToken)
+
+                            if !isActive {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    vm.shouldRecheckHover.toggle()
+                                }
+                            }
+                        }
+                    }
+
                     if Defaults[.enableTimerFeature] && timerDisplayMode == .popover {
                         Button(action: {
                             withAnimation(.smooth) {
