@@ -171,7 +171,7 @@ class AudioTap: NSObject {
     
     private func startCaptureSync() {
         guard !captureIsRunning else {
-            print("⚠️ [AudioTap] Capture already running, skipping start")
+            Logger.log("[AudioTap] Capture already running, skipping start", category: .warning)
             return
         }
 
@@ -204,14 +204,14 @@ class AudioTap: NSObject {
                 bundleIdentifier: targetBundleIdentifier,
                 bluetoothOutputActive: bluetoothOutputActive
             ) {
-                print("⏭️ [AudioTap] Bluetooth output active — skipping Spotify tap to preserve AirPods media control")
+                Logger.log("[AudioTap] Bluetooth output active — skipping Spotify tap to preserve AirPods media control", category: .warning)
                 continue
             }
 
             targetProcessObjects.insert(processObject)
             bundleIdentifierByProcessObject[processObject] = processBundleIdentifier
             let pidDescription = getPID(for: processObject).map(String.init) ?? "unknown"
-            print("🎯 [AudioTap] Found audio process \(processBundleIdentifier) with PID: \(pidDescription), AudioObjectID: \(processObject)")
+            Logger.log("[AudioTap] Found audio process \(processBundleIdentifier) with PID: \(pidDescription), AudioObjectID: \(processObject)", category: .debug)
         }
 
         // Preserve the previous PID translation as a fallback for applications
@@ -233,7 +233,7 @@ class AudioTap: NSObject {
         }
 
         if targetProcessObjects.isEmpty {
-            print("⚠️ [AudioTap] None of our target apps are running right now.")
+            Logger.log("[AudioTap] None of our target apps are running right now.", category: .warning)
             return
         }
 
@@ -250,15 +250,15 @@ class AudioTap: NSObject {
         description.isMixdown = true
         description.isMono = true
         
-        print("📋 [AudioTap] Creating tap for \(sortedTargetProcessObjects.count) processes: \(sortedTargetProcessObjects)")
+        Logger.log("[AudioTap] Creating tap for \(sortedTargetProcessObjects.count) processes: \(sortedTargetProcessObjects)", category: .debug)
 
         tapID = AudioObjectID(kAudioObjectUnknown)
         var status = AudioHardwareCreateProcessTap(description, &tapID)
         guard status == noErr else {
-            print("🛑 [AudioTap] Tap Error: \(status) (\(fourCharCodeToString(status)))")
+            Logger.log("[AudioTap] Tap Error: \(status) (\(fourCharCodeToString(status)))", category: .error)
             return
         }
-        print("✅ [AudioTap] Created process tap with ID: \(tapID)")
+        Logger.log("[AudioTap] Created process tap with ID: \(tapID)", category: .success)
 
         // Get the tap's unique hardware UID
         var tapUID: CFString = "" as CFString
@@ -273,11 +273,11 @@ class AudioTap: NSObject {
             AudioObjectGetPropertyData(tapID, &propertyAddress, 0, nil, &propertySize, uidPtr)
         }
         guard status == noErr else {
-            print("🛑 [AudioTap] UID Error: \(status) (\(fourCharCodeToString(status)))")
+            Logger.log("[AudioTap] UID Error: \(status) (\(fourCharCodeToString(status)))", category: .error)
             cleanupPartialSetup()
             return
         }
-        print("✅ [AudioTap] Got tap UID: \(tapUID)")
+        Logger.log("[AudioTap] Got tap UID: \(tapUID)", category: .success)
 
         // Create the Aggregate Device (a "virtual microphone" that we can route the tap into)
         let tapList = [[kAudioSubTapUIDKey: tapUID]]
@@ -292,27 +292,27 @@ class AudioTap: NSObject {
         status = AudioHardwareCreateAggregateDevice(
             aggregateDict as CFDictionary, &aggregateDeviceID)
         guard status == noErr else {
-            print("🛑 [AudioTap] Aggregate Error: \(status) (\(fourCharCodeToString(status)))")
+            Logger.log("[AudioTap] Aggregate Error: \(status) (\(fourCharCodeToString(status)))", category: .error)
             cleanupPartialSetup()
             return
         }
-        print("✅ [AudioTap] Created aggregate device with ID: \(aggregateDeviceID)")
+        Logger.log("[AudioTap] Created aggregate device with ID: \(aggregateDeviceID)", category: .success)
 
         // Bind the Callback to the device
         let selfPointer = Unmanaged.passUnretained(self).toOpaque()
         status = AudioDeviceCreateIOProcID(aggregateDeviceID, audioIOProc, selfPointer, &ioProcID)
 
         guard status == noErr, let validIOProcID = ioProcID else {
-            print("🛑 [AudioTap] IOProc Error: \(status) (\(fourCharCodeToString(status)))")
+            Logger.log("[AudioTap] IOProc Error: \(status) (\(fourCharCodeToString(status)))", category: .error)
             cleanupPartialSetup()
             return
         }
-        print("✅ [AudioTap] Created IO proc")
+        Logger.log("[AudioTap] Created IO proc", category: .success)
 
         // Start listening
         status = AudioDeviceStart(aggregateDeviceID, validIOProcID)
         guard status == noErr else {
-            print("🛑 [AudioTap] Start Error: \(status) (\(fourCharCodeToString(status)))")
+            Logger.log("[AudioTap] Start Error: \(status) (\(fourCharCodeToString(status)))", category: .error)
             cleanupPartialSetup()
             return
         }
@@ -327,7 +327,7 @@ class AudioTap: NSObject {
             self?.updateTimer = timer
         }
         
-        print("🟢 [AudioTap] CoreAudio CATap flowing through Aggregate Device!")
+        Logger.log("[AudioTap] CoreAudio CATap flowing through Aggregate Device!", category: .success)
     }
 
     private func shouldSkipSpotifyTap(
@@ -365,7 +365,7 @@ class AudioTap: NSObject {
         // Debounce: wait 500ms before actually restarting
         let workItem = DispatchWorkItem { [weak self] in
             self?.audioQueue.async {
-                print("🔄 [AudioTap] Restarting capture...")
+                Logger.log("[AudioTap] Restarting capture...", category: .lifecycle)
                 self?.stopCaptureSync()
                 // Small delay to let CoreAudio fully release resources
                 Thread.sleep(forTimeInterval: 0.1)
@@ -373,7 +373,7 @@ class AudioTap: NSObject {
                 // waveform can be switched off during the debounce window, and a stale
                 // restart must not bring capture back up behind the user's back.
                 guard Defaults[.enableRealTimeWaveform] else {
-                    print("⏹️ [AudioTap] Waveform disabled during restart, staying stopped")
+                    Logger.log("[AudioTap] Waveform disabled during restart, staying stopped", category: .debug)
                     return
                 }
                 self?.startCaptureSync()
@@ -424,7 +424,7 @@ class AudioTap: NSObject {
             self?.displayMagnitudes = Array(repeating: 0, count: 6)
         }
 
-        print("🔴 [AudioTap] CoreAudio CATap capture stopped")
+        Logger.log("[AudioTap] CoreAudio CATap capture stopped", category: .warning)
     }
     
     var isCapturing: Bool {

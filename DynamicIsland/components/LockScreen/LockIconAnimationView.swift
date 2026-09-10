@@ -170,7 +170,7 @@ struct LockIconLottieView: View {
         if let animation = LottieAnimation.named("Lock") {
             return animation
         } else {
-            print("⚠️ [LockIconLottieView] Missing Lock.json animation – falling back to SF Symbols")
+            Logger.log("[LockIconLottieView] Missing Lock.json animation – falling back to SF Symbols", category: .warning)
             return nil
         }
     }()

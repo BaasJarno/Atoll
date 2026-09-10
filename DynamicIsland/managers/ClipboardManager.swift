@@ -101,7 +101,7 @@ struct ClipboardItem: Identifiable, Codable {
             self.imageFileName = fileName
             self.preview = "Image (\(sizeDescription))"
         } catch {
-            print("Failed to save image data: \(error)")
+            Logger.log("Failed to save image data: \(error)", category: .error)
             self.imageFileName = nil
             self.preview = "Image (failed to save)"
         }
@@ -557,7 +557,7 @@ class ClipboardManager: ObservableObject {
             try data.write(to: url)
             return name
         } catch {
-            print("Failed to persist clipboard image: \(error)")
+            Logger.log("Failed to persist clipboard image: \(error)", category: .error)
             return nil
         }
     }

@@ -1461,7 +1461,7 @@ private final class FocusMetadataReader {
                 }
             }
         } catch {
-            print("ModeConfigurations.json decode error: \(error)")
+            Logger.log("ModeConfigurations.json decode error: \(error)", category: .error)
         }
 
         return nil

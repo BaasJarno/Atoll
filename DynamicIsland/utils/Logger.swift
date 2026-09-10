@@ -25,7 +25,7 @@ import OSLog
 import SwiftUI
 import Defaults
 
-enum LogCategory: String {
+enum LogCategory: String, CaseIterable {
     case lifecycle = "🔄"
     case memory = "💾"
     case performance = "⚡️"
@@ -69,15 +69,24 @@ struct Logger {
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter
     }()
-    private static var osLoggerCache: [LogCategory: OSLog] = [:]
+    /// One `OSLog` per category, built once.
+    ///
+    /// This was a `static var` dictionary filled on first use, which races:
+    /// `log()` is called from whatever thread reached it — 70-odd call sites,
+    /// many of them on background queues — and two of them arriving together
+    /// mutated the same dictionary with no lock between them. A `static let`
+    /// is initialised exactly once by the runtime (`swift_once`) and never
+    /// written again, so the race goes away without a lock to pay for on
+    /// every line logged. The category list is finite, so eager construction
+    /// costs a handful of objects at first use.
+    private static let osLoggers: [LogCategory: OSLog] = Dictionary(
+        uniqueKeysWithValues: LogCategory.allCases.map { category in
+            (category, OSLog(subsystem: subsystem, category: category.osCategoryName))
+        }
+    )
 
     private static func osLogger(for category: LogCategory) -> OSLog {
-        if let cached = osLoggerCache[category] {
-            return cached
-        }
-        let logger = OSLog(subsystem: subsystem, category: category.osCategoryName)
-        osLoggerCache[category] = logger
-        return logger
+        osLoggers[category] ?? .default
     }
 
     static func log(
@@ -87,20 +96,28 @@ struct Logger {
         function: String = #function,
         line: Int = #line
     ) {
-        let configuredLevel = Defaults[.logLevel]
-        if configuredLevel == .none || category.defaultLevel.rawValue > configuredLevel.rawValue {
-            return
-        }
-
         let fileName = (file as NSString).lastPathComponent
         let timestamp = dateFormatter.string(from: Date())
         let entry = "\(category.rawValue) [\(timestamp)] [\(fileName):\(line)] \(function) - \(message)"
-        let logger = osLogger(for: category)
-        os_log("%{public}@", log: logger, type: .default, entry)
 
 #if DEBUG
+        // A debug build is someone sitting at a console, so they see the line
+        // whatever the setting says. `logLevel` decides what a shipped build
+        // records, which is the thing worth having a setting for.
+        //
+        // This used to sit behind the level check below, and since the level
+        // defaults to `.none`, a debug build printed nothing at all through
+        // this function — which is the most likely reason several hundred
+        // `print` calls grew up beside it.
         Swift.print(entry)
 #endif
+
+        let configuredLevel = Defaults[.logLevel]
+        guard configuredLevel != .none,
+              category.defaultLevel.rawValue <= configuredLevel.rawValue else {
+            return
+        }
+        os_log("%{public}@", log: osLogger(for: category), type: .default, entry)
     }
     
     static func trackMemory(

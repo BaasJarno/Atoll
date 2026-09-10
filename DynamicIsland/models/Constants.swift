@@ -89,9 +89,9 @@ struct CustomIdleAnimation: Codable, Hashable, Equatable, Defaults.Serializable,
     func getTransformConfig() -> AnimationTransformConfig {
         let override = Defaults[.animationTransformOverrides][id.uuidString]
         if let override = override {
-            print("📋 [CustomIdleAnimation] Found override for '\(name)': \(override)")
+            Logger.log("[CustomIdleAnimation] Found override for '\(name)': \(override)", category: .debug)
         } else {
-            print("📋 [CustomIdleAnimation] No override for '\(name)', using default")
+            Logger.log("[CustomIdleAnimation] No override for '\(name)', using default", category: .debug)
         }
         return override ?? .default
     }

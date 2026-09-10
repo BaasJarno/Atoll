@@ -223,7 +223,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             // A target music app was launched, restart capture to include it
             if Defaults[.enableRealTimeWaveform] {
-                print("🎵 [AudioTap] Music app launched: \(bundleID), restarting capture...")
+                Logger.log("[AudioTap] Music app launched: \(bundleID), restarting capture...", category: .debug)
                 // Give the app a moment to fully launch
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                     AudioTap.shared.restartCapture()
@@ -243,7 +243,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             // A target music app was terminated, restart capture to update the list
             if Defaults[.enableRealTimeWaveform] {
-                print("🎵 [AudioTap] Music app terminated: \(bundleID), restarting capture...")
+                Logger.log("[AudioTap] Music app terminated: \(bundleID), restarting capture...", category: .debug)
                 AudioTap.shared.restartCapture()
             }
         }
@@ -258,7 +258,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { _ in
             if Defaults[.enableRealTimeWaveform] {
-                print("🔀 [AudioTap] Audio route changed, restarting capture...")
+                Logger.log("[AudioTap] Audio route changed, restarting capture...", category: .debug)
                 AudioTap.shared.restartCapture()
             }
         }
@@ -310,12 +310,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc func onScreenLocked(_: Notification) {
-        print("Screen locked")
+        Logger.log("Screen locked", category: .debug)
         hideWindowsForLock()
     }
 
     @objc func onScreenUnlocked(_: Notification) {
-        print("Screen unlocked")
+        Logger.log("Screen unlocked", category: .debug)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             guard let self = self else { return }
             self.restoreWindowsAfterLock()

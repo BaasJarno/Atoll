@@ -403,7 +403,7 @@ final class FullScreenArtworkWindowManager: ObservableObject {
         onDismiss = nil
         callback?()
 
-        print("[FullScreenArtworkWindowManager] Original wallpaper restored")
+        Logger.log("[FullScreenArtworkWindowManager] Original wallpaper restored", category: .debug)
     }
 
     // MARK: - Artwork Pre-Cache
@@ -484,7 +484,7 @@ final class FullScreenArtworkWindowManager: ObservableObject {
             }
         }
         hasSuspendedWallpaperAgent = anySucceeded
-        print("[FullScreenArtworkWindowManager] SIGSTOP wallpaper processes -> anySucceeded=\(anySucceeded)")
+        Logger.log("[FullScreenArtworkWindowManager] SIGSTOP wallpaper processes -> anySucceeded=\(anySucceeded)", category: .debug)
     }
 
     private func resumeWallpaperAgentIfNeeded() {
@@ -493,7 +493,7 @@ final class FullScreenArtworkWindowManager: ObservableObject {
             _ = signalProcess(name: name, signalFlag: "-CONT")
         }
         hasSuspendedWallpaperAgent = false
-        print("[FullScreenArtworkWindowManager] SIGCONT wallpaper processes")
+        Logger.log("[FullScreenArtworkWindowManager] SIGCONT wallpaper processes", category: .debug)
     }
 
     @discardableResult
@@ -508,7 +508,7 @@ final class FullScreenArtworkWindowManager: ObservableObject {
             task.waitUntilExit()
             return task.terminationStatus == 0
         } catch {
-            print("[FullScreenArtworkWindowManager] killall \(signalFlag) \(name) threw: \(error)")
+            Logger.log("[FullScreenArtworkWindowManager] killall \(signalFlag) \(name) threw: \(error)", category: .error)
             return false
         }
     }
@@ -571,7 +571,7 @@ final class FullScreenArtworkWindowManager: ObservableObject {
                 showWallpaperTransition(on: screen, imageURL: wallpaperURL)
 
                 guard applyArtworkToPlist(imageURL: wallpaperURL) else {
-                    print("[FullScreenArtworkWindowManager] Failed to patch plist")
+                    Logger.log("[FullScreenArtworkWindowManager] Failed to patch plist", category: .error)
                     hideWallpaperTransition()
                     return
                 }
@@ -615,7 +615,7 @@ final class FullScreenArtworkWindowManager: ObservableObject {
             scheduleWallpaperTransitionHide(after: .milliseconds(900))
         }
 
-        print("[FullScreenArtworkWindowManager] Artwork applied as wallpaper")
+        Logger.log("[FullScreenArtworkWindowManager] Artwork applied as wallpaper", category: .debug)
     }
 
     private func refreshPresentationForCurrentTrack() {
@@ -895,7 +895,7 @@ final class FullScreenArtworkWindowManager: ObservableObject {
             showWallpaperTransition(on: screen, imageURL: url)
         }
         guard applyArtworkToPlist(imageURL: url) else {
-            print("[FullScreenArtworkWindowManager] Failed to apply deferred static fallback")
+            Logger.log("[FullScreenArtworkWindowManager] Failed to apply deferred static fallback", category: .error)
             hideWallpaperTransition()
             return
         }
@@ -984,7 +984,7 @@ final class FullScreenArtworkWindowManager: ObservableObject {
                 self.pendingFallbackWallpaperKey = nil
                 self.restartWallpaperAgent()
                 self.scheduleHideVideoWindow(after: .milliseconds(950), expectedURL: videoURL)
-                print("[FullScreenArtworkWindowManager] Live wallpaper applied")
+                Logger.log("[FullScreenArtworkWindowManager] Live wallpaper applied", category: .debug)
             }
         }
     }
@@ -1761,7 +1761,7 @@ final class FullScreenArtworkWindowManager: ObservableObject {
             try fm.copyItem(at: backupPlistURL, to: wallpaperPlistURL)
             try fm.removeItem(at: backupPlistURL)
         } catch {
-            print("[FullScreenArtworkWindowManager] Failed to restore plist: \(error)")
+            Logger.log("[FullScreenArtworkWindowManager] Failed to restore plist: \(error)", category: .error)
         }
 
         restoreLiveWallpaperResources()

@@ -138,7 +138,7 @@ class SystemOSDManager {
             guard isCurrentTransition(generation, active: false) else { return }
             
             await MainActor.run {
-                print("✅ System HUD re-enabled")
+                Logger.log("System HUD re-enabled", category: .success)
             }
         } catch {
             guard isCurrentTransition(generation, active: false) else { return }
@@ -160,7 +160,7 @@ class SystemOSDManager {
                 }
                 
                 await MainActor.run {
-                    print("✅ System HUD re-enabled via fallback method")
+                    Logger.log("System HUD re-enabled via fallback method", category: .success)
                 }
             } catch {
                 await MainActor.run {
@@ -289,7 +289,7 @@ class SystemOSDManager {
                 }
                 suppressionState.withLock { $0.lastSuspendedPID = existing }
                 await MainActor.run {
-                    print("✅ System HUD disabled (suspended running helper \(existing))")
+                    Logger.log("System HUD disabled (suspended running helper \(existing))", category: .success)
                 }
                 return
             }
@@ -337,7 +337,7 @@ class SystemOSDManager {
 
             if isCurrentTransition(generation, active: true) {
                 await MainActor.run {
-                    print("✅ System HUD disabled")
+                    Logger.log("System HUD disabled", category: .success)
                 }
             }
         } catch {

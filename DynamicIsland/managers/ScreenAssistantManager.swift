@@ -195,11 +195,11 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     
     func addFiles(_ urls: [URL]) {
         guard !urls.isEmpty else {
-            print("⚠️ ScreenAssistant: No URLs provided to addFiles")
+            Logger.log("ScreenAssistant: No URLs provided to addFiles", category: .warning)
             return
         }
         
-        print("📁 ScreenAssistant: Adding \(urls.count) files")
+        Logger.log("ScreenAssistant: Adding \(urls.count) files", category: .debug)
         
         let newFiles = urls.compactMap { url -> ScreenAssistantFile? in
             // Wrap in autoreleasepool to manage memory
@@ -207,48 +207,48 @@ class ScreenAssistantManager: NSObject, ObservableObject {
                 do {
                     // Verify file exists
                     guard FileManager.default.fileExists(atPath: url.path) else {
-                        print("❌ ScreenAssistant: File does not exist at \(url.path)")
+                        Logger.log("ScreenAssistant: File does not exist at \(url.path)", category: .error)
                         return nil
                     }
                     
                     // Verify file is readable
                     guard FileManager.default.isReadableFile(atPath: url.path) else {
-                        print("❌ ScreenAssistant: File is not readable at \(url.path)")
+                        Logger.log("ScreenAssistant: File is not readable at \(url.path)", category: .error)
                         return nil
                     }
                     
                     // Create file entry with error handling
                     let file = ScreenAssistantFile(fileURL: url)
-                    print("✅ ScreenAssistant: Created file entry for \(file.name)")
+                    Logger.log("ScreenAssistant: Created file entry for \(file.name)", category: .success)
                     return file
                     
                 } catch {
-                    print("❌ ScreenAssistant: Error creating file entry - \(error)")
+                    Logger.log("ScreenAssistant: Error creating file entry - \(error)", category: .error)
                     return nil
                 }
             }
         }
         
         guard !newFiles.isEmpty else {
-            print("⚠️ ScreenAssistant: No valid files to add")
+            Logger.log("ScreenAssistant: No valid files to add", category: .warning)
             return
         }
         
         // Ensure we're on the main thread for @Published property updates
         DispatchQueue.main.async { [weak self] in
             guard let self = self else {
-                print("❌ ScreenAssistant: Self deallocated during addFiles")
+                Logger.log("ScreenAssistant: Self deallocated during addFiles", category: .error)
                 return
             }
             
             self.attachedFiles.append(contentsOf: newFiles)
-            print("📁 ScreenAssistant: Total attached files: \(self.attachedFiles.count)")
+            Logger.log("ScreenAssistant: Total attached files: \(self.attachedFiles.count)", category: .debug)
             
             // Save to defaults with error handling
             do {
                 self.saveFilesToDefaults()
             } catch {
-                print("❌ ScreenAssistant: Failed to save files after adding - \(error)")
+                Logger.log("ScreenAssistant: Failed to save files after adding - \(error)", category: .error)
             }
         }
     }
@@ -316,9 +316,9 @@ class ScreenAssistantManager: NSObject, ObservableObject {
                 self?.updateRecordingDuration()
             }
             
-            print("Started recording: \(fileName)")
+            Logger.log("Started recording: \(fileName)", category: .debug)
         } catch {
-            print("Failed to start recording: \(error)")
+            Logger.log("Failed to start recording: \(error)", category: .error)
         }
     }
     
@@ -330,7 +330,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
         recordingTimer = nil
         isRecording = false
         
-        print("Stopped recording")
+        Logger.log("Stopped recording", category: .debug)
     }
     
     private func updateRecordingDuration() {
@@ -344,9 +344,9 @@ class ScreenAssistantManager: NSObject, ObservableObject {
         do {
             let encoded = try JSONEncoder().encode(attachedFiles)
             UserDefaults.standard.set(encoded, forKey: "ScreenAssistantFiles")
-            print("✅ ScreenAssistant: Saved \(attachedFiles.count) files to UserDefaults")
+            Logger.log("ScreenAssistant: Saved \(attachedFiles.count) files to UserDefaults", category: .success)
         } catch {
-            print("❌ ScreenAssistant: Failed to save files to UserDefaults - \(error)")
+            Logger.log("ScreenAssistant: Failed to save files to UserDefaults - \(error)", category: .error)
             // Don't throw - this is a non-critical operation
         }
     }
@@ -363,8 +363,11 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     // MARK: - Chat Management
     
     func sendMessage(_ message: String) {
-        print("📤 ScreenAssistant: Sending message - '\(message)'")
-        print("📁 ScreenAssistant: Attached files count: \(attachedFiles.count)")
+        // Length only: this is whatever the user typed to the assistant, and
+        // `print` reaches stdout in release builds with none of the redaction
+        // os.Logger would apply to an interpolated string.
+        Logger.log("ScreenAssistant: Sending message (\(message.count) characters)", category: .network)
+        Logger.log("ScreenAssistant: Attached files count: \(attachedFiles.count)", category: .debug)
         
         // Add user message to chat
         let userMessage = ChatMessage(content: message, isFromUser: true, attachedFiles: attachedFiles.isEmpty ? nil : attachedFiles)
@@ -372,7 +375,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
         
         // Print attached files details
         for (index, file) in attachedFiles.enumerated() {
-            print("📎 ScreenAssistant: File \(index + 1): \(file.name) (\(file.type.displayName))")
+            Logger.log("ScreenAssistant: File \(index + 1): \(file.name) (\(file.type.displayName))", category: .debug)
         }
         
         // Clear input and files after sending
@@ -385,7 +388,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     }
     
     private func sendToAI(message: String, files: [ScreenAssistantFile], provider: AIModelProvider) {
-        print("🚀 ScreenAssistant: Making API request to \(provider.displayName)")
+        Logger.log("ScreenAssistant: Making API request to \(provider.displayName)", category: .debug)
         isLoading = true
         
         switch provider {
@@ -405,7 +408,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     private func sendToGeminiAPI(message: String, files: [ScreenAssistantFile]) {
         let apiKey = Defaults[.geminiApiKey]
         guard !apiKey.isEmpty else {
-            print("❌ ScreenAssistant: No Gemini API key configured")
+            Logger.log("ScreenAssistant: No Gemini API key configured", category: .error)
             addAssistantMessage("Error: No Gemini API key configured. Please set your API key in model settings.")
             isLoading = false
             return
@@ -416,7 +419,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
         let modelId = selectedModel.id
         
         guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(modelId):generateContent?key=\(apiKey)") else {
-            print("❌ ScreenAssistant: Invalid Gemini API URL")
+            Logger.log("ScreenAssistant: Invalid Gemini API URL", category: .error)
             addAssistantMessage("Error: Invalid API URL")
             isLoading = false
             return
@@ -428,7 +431,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     private func sendToOpenAIAPI(message: String, files: [ScreenAssistantFile]) {
         let apiKey = Defaults[.openaiApiKey]
         guard !apiKey.isEmpty else {
-            print("❌ ScreenAssistant: No OpenAI API key configured")
+            Logger.log("ScreenAssistant: No OpenAI API key configured", category: .error)
             addAssistantMessage("Error: No OpenAI API key configured. Please set your API key in model settings.")
             isLoading = false
             return
@@ -439,7 +442,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
         let modelId = selectedModel.id
         
         guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
-            print("❌ ScreenAssistant: Invalid OpenAI API URL")
+            Logger.log("ScreenAssistant: Invalid OpenAI API URL", category: .error)
             addAssistantMessage("Error: Invalid API URL")
             isLoading = false
             return
@@ -451,7 +454,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     private func sendToGroqAPI(message: String, files: [ScreenAssistantFile]) {
         let apiKey = Defaults[.groqApiKey]
         guard !apiKey.isEmpty else {
-            print("❌ ScreenAssistant: No Groq API key configured")
+            Logger.log("ScreenAssistant: No Groq API key configured", category: .error)
             addAssistantMessage("Error: No Groq API key configured. Please set your API key in model settings.")
             isLoading = false
             return
@@ -468,7 +471,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
         }
         
         guard let url = URL(string: "https://api.groq.com/openai/v1/chat/completions") else {
-            print("❌ ScreenAssistant: Invalid Groq API URL")
+            Logger.log("ScreenAssistant: Invalid Groq API URL", category: .error)
             addAssistantMessage("Error: Invalid API URL")
             isLoading = false
             return
@@ -485,7 +488,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     private func sendToClaudeAPI(message: String, files: [ScreenAssistantFile]) {
         let apiKey = Defaults[.claudeApiKey]
         guard !apiKey.isEmpty else {
-            print("❌ ScreenAssistant: No Claude API key configured")
+            Logger.log("ScreenAssistant: No Claude API key configured", category: .error)
             addAssistantMessage("Error: No Claude API key configured. Please set your API key in model settings.")
             isLoading = false
             return
@@ -496,7 +499,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
         let modelId = selectedModel.id
         
         guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
-            print("❌ ScreenAssistant: Invalid Claude API URL")
+            Logger.log("ScreenAssistant: Invalid Claude API URL", category: .error)
             addAssistantMessage("Error: Invalid API URL")
             isLoading = false
             return
@@ -508,14 +511,14 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     private func sendToLocalAPI(message: String, files: [ScreenAssistantFile]) {
         let endpoint = Defaults[.localModelEndpoint]
         guard !endpoint.isEmpty else {
-            print("❌ ScreenAssistant: No local endpoint configured")
+            Logger.log("ScreenAssistant: No local endpoint configured", category: .error)
             addAssistantMessage("Error: No local endpoint configured. Please set your endpoint in model settings.")
             isLoading = false
             return
         }
         
         guard let url = URL(string: "\(endpoint)/api/chat") else {
-            print("❌ ScreenAssistant: Invalid local API URL")
+            Logger.log("ScreenAssistant: Invalid local API URL", category: .error)
             addAssistantMessage("Error: Invalid local API URL")
             isLoading = false
             return
@@ -552,7 +555,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
         for file in files {
             if let filePart = createGeminiFilePart(for: file) {
                 parts.append(filePart)
-                print("📎 ScreenAssistant: Added file part for \(file.name)")
+                Logger.log("ScreenAssistant: Added file part for \(file.name)", category: .debug)
             }
         }
         
@@ -690,9 +693,9 @@ class ScreenAssistantManager: NSObject, ObservableObject {
             let jsonData = try JSONSerialization.data(withJSONObject: requestBody, options: .prettyPrinted)
             request.httpBody = jsonData
             
-            print("📋 ScreenAssistant: Request body size: \(jsonData.count) bytes")
+            Logger.log("ScreenAssistant: Request body size: \(jsonData.count) bytes", category: .debug)
         } catch {
-            print("❌ ScreenAssistant: Failed to encode request - \(error)")
+            Logger.log("ScreenAssistant: Failed to encode request - \(error)", category: .error)
             addAssistantMessage("Error: Failed to encode request - \(error.localizedDescription)")
             isLoading = false
             return
@@ -728,7 +731,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
             let jsonData = try JSONSerialization.data(withJSONObject: requestBody, options: .prettyPrinted)
             request.httpBody = jsonData
         } catch {
-            print("❌ ScreenAssistant: Failed to encode OpenAI request - \(error)")
+            Logger.log("ScreenAssistant: Failed to encode OpenAI request - \(error)", category: .error)
             addAssistantMessage("Error: Failed to encode request - \(error.localizedDescription)")
             isLoading = false
             return
@@ -765,7 +768,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
             let jsonData = try JSONSerialization.data(withJSONObject: requestBody, options: .prettyPrinted)
             request.httpBody = jsonData
         } catch {
-            print("❌ ScreenAssistant: Failed to encode Claude request - \(error)")
+            Logger.log("ScreenAssistant: Failed to encode Claude request - \(error)", category: .error)
             addAssistantMessage("Error: Failed to encode request - \(error.localizedDescription)")
             isLoading = false
             return
@@ -796,18 +799,18 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     private func handleResponse(data: Data?, response: URLResponse?, error: Error?, provider: AIModelProvider) {
         // Check if the request was cancelled (e.g., by resetConversationContext)
         if let error = error as? NSError, error.code == NSURLErrorCancelled {
-            print("ℹ️ ScreenAssistant: Request was cancelled")
+            Logger.log("ℹ️ ScreenAssistant: Request was cancelled", category: .debug)
             return
         }
         
         if let error = error {
-            print("❌ ScreenAssistant: Network error - \(error)")
+            Logger.log("ScreenAssistant: Network error - \(error)", category: .error)
             addAssistantMessage("Error: \(error.localizedDescription)")
             return
         }
         
         if let httpResponse = response as? HTTPURLResponse {
-            print("📊 ScreenAssistant: HTTP Status: \(httpResponse.statusCode)")
+            Logger.log("ScreenAssistant: HTTP Status: \(httpResponse.statusCode)", category: .debug)
             if httpResponse.statusCode != 200 {
                 handleAPIError(statusCode: httpResponse.statusCode, provider: provider)
                 return
@@ -815,12 +818,12 @@ class ScreenAssistantManager: NSObject, ObservableObject {
         }
         
         guard let data = data else {
-            print("❌ ScreenAssistant: No response data")
+            Logger.log("ScreenAssistant: No response data", category: .error)
             addAssistantMessage("Error: No response data")
             return
         }
         
-        print("📨 ScreenAssistant: Response data size: \(data.count) bytes")
+        Logger.log("ScreenAssistant: Response data size: \(data.count) bytes", category: .debug)
         
         // Parse response based on provider
         switch provider {
@@ -838,7 +841,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     private func parseGeminiResponse(data: Data) {
         do {
             if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                print("✅ ScreenAssistant: Successfully parsed Gemini JSON response")
+                Logger.log("ScreenAssistant: Successfully parsed Gemini JSON response", category: .success)
                 
                 if let candidates = json["candidates"] as? [[String: Any]],
                    let firstCandidate = candidates.first,
@@ -847,19 +850,19 @@ class ScreenAssistantManager: NSObject, ObservableObject {
                    let firstPart = parts.first,
                    let text = firstPart["text"] as? String {
                     
-                    print("✅ ScreenAssistant: Got Gemini response text: \(text.prefix(100))...")
+                    Logger.log("ScreenAssistant: Got Gemini response (\(text.count) characters)", category: .success)
                     addAssistantMessage(text)
                 } else {
                     if let error = json["error"] as? [String: Any] {
                         handleAPIError(error: error)
                     } else {
-                        print("❌ ScreenAssistant: Unexpected Gemini response format")
+                        Logger.log("ScreenAssistant: Unexpected Gemini response format", category: .error)
                         addAssistantMessage("Error: Unexpected response format from Gemini")
                     }
                 }
             }
         } catch {
-            print("❌ ScreenAssistant: Gemini JSON parsing error - \(error)")
+            Logger.log("ScreenAssistant: Gemini JSON parsing error - \(error)", category: .error)
             addAssistantMessage("Error: Failed to parse response - \(error.localizedDescription)")
         }
     }
@@ -867,26 +870,26 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     private func parseOpenAIResponse(data: Data) {
         do {
             if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                print("✅ ScreenAssistant: Successfully parsed OpenAI JSON response")
+                Logger.log("ScreenAssistant: Successfully parsed OpenAI JSON response", category: .success)
                 
                 if let choices = json["choices"] as? [[String: Any]],
                    let firstChoice = choices.first,
                    let message = firstChoice["message"] as? [String: Any],
                    let content = message["content"] as? String {
                     
-                    print("✅ ScreenAssistant: Got OpenAI response text: \(content.prefix(100))...")
+                    Logger.log("ScreenAssistant: Got OpenAI response (\(content.count) characters)", category: .success)
                     addAssistantMessage(content)
                 } else {
                     if let error = json["error"] as? [String: Any] {
                         handleOpenAIError(error: error)
                     } else {
-                        print("❌ ScreenAssistant: Unexpected OpenAI response format")
+                        Logger.log("ScreenAssistant: Unexpected OpenAI response format", category: .error)
                         addAssistantMessage("Error: Unexpected response format from OpenAI")
                     }
                 }
             }
         } catch {
-            print("❌ ScreenAssistant: OpenAI JSON parsing error - \(error)")
+            Logger.log("ScreenAssistant: OpenAI JSON parsing error - \(error)", category: .error)
             addAssistantMessage("Error: Failed to parse response - \(error.localizedDescription)")
         }
     }
@@ -894,25 +897,25 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     private func parseClaudeResponse(data: Data) {
         do {
             if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                print("✅ ScreenAssistant: Successfully parsed Claude JSON response")
+                Logger.log("ScreenAssistant: Successfully parsed Claude JSON response", category: .success)
                 
                 if let content = json["content"] as? [[String: Any]],
                    let firstContent = content.first,
                    let text = firstContent["text"] as? String {
                     
-                    print("✅ ScreenAssistant: Got Claude response text: \(text.prefix(100))...")
+                    Logger.log("ScreenAssistant: Got Claude response (\(text.count) characters)", category: .success)
                     addAssistantMessage(text)
                 } else {
                     if let error = json["error"] as? [String: Any] {
                         handleClaudeError(error: error)
                     } else {
-                        print("❌ ScreenAssistant: Unexpected Claude response format")
+                        Logger.log("ScreenAssistant: Unexpected Claude response format", category: .error)
                         addAssistantMessage("Error: Unexpected response format from Claude")
                     }
                 }
             }
         } catch {
-            print("❌ ScreenAssistant: Claude JSON parsing error - \(error)")
+            Logger.log("ScreenAssistant: Claude JSON parsing error - \(error)", category: .error)
             addAssistantMessage("Error: Failed to parse response - \(error.localizedDescription)")
         }
     }
@@ -920,20 +923,20 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     private func parseOllamaResponse(data: Data) {
         do {
             if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                print("✅ ScreenAssistant: Successfully parsed Ollama JSON response")
+                Logger.log("ScreenAssistant: Successfully parsed Ollama JSON response", category: .success)
                 
                 if let message = json["message"] as? [String: Any],
                    let content = message["content"] as? String {
                     
-                    print("✅ ScreenAssistant: Got Ollama response text: \(content.prefix(100))...")
+                    Logger.log("ScreenAssistant: Got Ollama response text: \(content.prefix(100))...", category: .success)
                     addAssistantMessage(content)
                 } else {
-                    print("❌ ScreenAssistant: Unexpected Ollama response format")
+                    Logger.log("ScreenAssistant: Unexpected Ollama response format", category: .error)
                     addAssistantMessage("Error: Unexpected response format from local model")
                 }
             }
         } catch {
-            print("❌ ScreenAssistant: Ollama JSON parsing error - \(error)")
+            Logger.log("ScreenAssistant: Ollama JSON parsing error - \(error)", category: .error)
             addAssistantMessage("Error: Failed to parse response - \(error.localizedDescription)")
         }
     }
@@ -988,10 +991,10 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     }
     
     private func createGeminiFilePart(for file: ScreenAssistantFile) -> [String: Any]? {
-        print("📎 ScreenAssistant: Processing file for Gemini 2.5: \(file.name) (\(file.type.displayName))")
+        Logger.log("ScreenAssistant: Processing file for Gemini 2.5: \(file.name) (\(file.type.displayName))", category: .debug)
         
         guard let fileURL = file.fileURL, let url = URL(string: fileURL) else {
-            print("❌ ScreenAssistant: No valid URL for file \(file.name)")
+            Logger.log("ScreenAssistant: No valid URL for file \(file.name)", category: .error)
             return ["text": "File: \(file.name) (no valid URL)"]
         }
         
@@ -1010,7 +1013,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     }
     
     private func createGeminiImagePart(for url: URL, fileName: String) -> [String: Any]? {
-        print("🖼️ ScreenAssistant: Processing image file: \(fileName)")
+        Logger.log("ScreenAssistant: Processing image file: \(fileName)", category: .debug)
         
         do {
             let imageData = try Data(contentsOf: url)
@@ -1034,7 +1037,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
                 mimeType = "image/jpeg"
             }
             
-            print("📎 ScreenAssistant: Image encoded - \(base64String.count) bytes, MIME: \(mimeType)")
+            Logger.log("ScreenAssistant: Image encoded - \(base64String.count) bytes, MIME: \(mimeType)", category: .debug)
             
             return [
                 "inline_data": [
@@ -1043,13 +1046,13 @@ class ScreenAssistantManager: NSObject, ObservableObject {
                 ]
             ]
         } catch {
-            print("❌ ScreenAssistant: Failed to encode image \(fileName): \(error)")
+            Logger.log("ScreenAssistant: Failed to encode image \(fileName): \(error)", category: .error)
             return ["text": "Image file: \(fileName) (failed to encode: \(error.localizedDescription))"]
         }
     }
     
     private func createGeminiDocumentPart(for url: URL, fileName: String) -> [String: Any]? {
-        print("📄 ScreenAssistant: Processing document file: \(fileName)")
+        Logger.log("ScreenAssistant: Processing document file: \(fileName)", category: .debug)
         
         let pathExtension = url.pathExtension.lowercased()
         
@@ -1059,7 +1062,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
                 let pdfData = try Data(contentsOf: url)
                 let base64String = pdfData.base64EncodedString()
                 
-                print("📎 ScreenAssistant: PDF encoded - \(base64String.count) bytes")
+                Logger.log("ScreenAssistant: PDF encoded - \(base64String.count) bytes", category: .debug)
                 
                 return [
                     "inline_data": [
@@ -1068,24 +1071,24 @@ class ScreenAssistantManager: NSObject, ObservableObject {
                     ]
                 ]
             } catch {
-                print("❌ ScreenAssistant: Failed to encode PDF \(fileName): \(error)")
+                Logger.log("ScreenAssistant: Failed to encode PDF \(fileName): \(error)", category: .error)
                 return ["text": "PDF file: \(fileName) (failed to encode: \(error.localizedDescription))"]
             }
         } else {
             // Handle text-based documents
             do {
                 let content = try String(contentsOf: url)
-                print("📄 ScreenAssistant: Read document content (\(content.count) characters)")
+                Logger.log("ScreenAssistant: Read document content (\(content.count) characters)", category: .debug)
                 return ["text": "File content of \(fileName):\n\(content)"]
             } catch {
-                print("❌ ScreenAssistant: Failed to read document \(fileName): \(error)")
+                Logger.log("ScreenAssistant: Failed to read document \(fileName): \(error)", category: .error)
                 return ["text": "Document file: \(fileName) (could not read content: \(error.localizedDescription))"]
             }
         }
     }
     
     private func createGeminiAudioPart(for url: URL, fileName: String) -> [String: Any]? {
-        print("🎵 ScreenAssistant: Processing audio file: \(fileName)")
+        Logger.log("ScreenAssistant: Processing audio file: \(fileName)", category: .debug)
         
         do {
             let audioData = try Data(contentsOf: url)
@@ -1109,7 +1112,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
                 mimeType = "audio/mpeg"
             }
             
-            print("� ScreenAssistant: Audio encoded - \(base64String.count) bytes, MIME: \(mimeType)")
+            Logger.log("ScreenAssistant: Audio encoded - \(base64String.count) bytes, MIME: \(mimeType)", category: .debug)
             
             return [
                 "inline_data": [
@@ -1118,13 +1121,13 @@ class ScreenAssistantManager: NSObject, ObservableObject {
                 ]
             ]
         } catch {
-            print("❌ ScreenAssistant: Failed to encode audio \(fileName): \(error)")
+            Logger.log("ScreenAssistant: Failed to encode audio \(fileName): \(error)", category: .error)
             return ["text": "Audio file: \(fileName) (failed to encode: \(error.localizedDescription))"]
         }
     }
     
     private func createGeminiVideoPart(for url: URL, fileName: String) -> [String: Any]? {
-        print("� ScreenAssistant: Processing video file: \(fileName)")
+        Logger.log("ScreenAssistant: Processing video file: \(fileName)", category: .debug)
         
         do {
             let videoData = try Data(contentsOf: url)
@@ -1146,7 +1149,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
                 mimeType = "video/mp4"
             }
             
-            print("📎 ScreenAssistant: Video encoded - \(base64String.count) bytes, MIME: \(mimeType)")
+            Logger.log("ScreenAssistant: Video encoded - \(base64String.count) bytes, MIME: \(mimeType)", category: .debug)
             
             return [
                 "inline_data": [
@@ -1155,20 +1158,20 @@ class ScreenAssistantManager: NSObject, ObservableObject {
                 ]
             ]
         } catch {
-            print("❌ ScreenAssistant: Failed to encode video \(fileName): \(error)")
+            Logger.log("ScreenAssistant: Failed to encode video \(fileName): \(error)", category: .error)
             return ["text": "Video file: \(fileName) (failed to encode: \(error.localizedDescription))"]
         }
     }
     
     private func createGeminiTextPart(for url: URL, fileName: String) -> [String: Any]? {
-        print("📝 ScreenAssistant: Processing text file: \(fileName)")
+        Logger.log("ScreenAssistant: Processing text file: \(fileName)", category: .debug)
         
         do {
             let content = try String(contentsOf: url)
-            print("📄 ScreenAssistant: Read text content (\(content.count) characters)")
+            Logger.log("ScreenAssistant: Read text content (\(content.count) characters)", category: .debug)
             return ["text": "File content of \(fileName):\n\(content)"]
         } catch {
-            print("❌ ScreenAssistant: Failed to read text file \(fileName): \(error)")
+            Logger.log("ScreenAssistant: Failed to read text file \(fileName): \(error)", category: .error)
             return ["text": "File: \(fileName) (could not read content: \(error.localizedDescription))"]
         }
     }
@@ -1188,7 +1191,7 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     }
     
     private func addAssistantMessage(_ content: String) {
-        print("💬 ScreenAssistant: Adding assistant message: \(content.prefix(100))...")
+        Logger.log("ScreenAssistant: Adding assistant message: \(content.prefix(100))...", category: .debug)
         let assistantMessage = ChatMessage(content: content, isFromUser: false)
         chatMessages.append(assistantMessage)
     }
@@ -1219,12 +1222,12 @@ class ScreenAssistantManager: NSObject, ObservableObject {
     private func handleAPIError(error: [String: Any]) {
         guard let code = error["code"] as? Int,
               let message = error["message"] as? String else {
-            print("❌ ScreenAssistant: Unknown API Error")
+            Logger.log("ScreenAssistant: Unknown API Error", category: .error)
             addAssistantMessage("An unknown error occurred. Please try again.")
             return
         }
         
-        print("❌ ScreenAssistant: API Error \(code) - \(message)")
+        Logger.log("ScreenAssistant: API Error \(code) - \(message)", category: .error)
         
         let userFriendlyMessage: String
         
@@ -1292,9 +1295,9 @@ extension ScreenAssistantManager: AVAudioRecorderDelegate {
             let audioFile = ScreenAssistantFile(audioFileName: fileName, name: displayName)
             attachedFiles.append(audioFile)
             saveFilesToDefaults()
-            print("Recording saved: \(fileName)")
+            Logger.log("Recording saved: \(fileName)", category: .debug)
         } else {
-            print("Recording failed")
+            Logger.log("Recording failed", category: .error)
         }
     }
     

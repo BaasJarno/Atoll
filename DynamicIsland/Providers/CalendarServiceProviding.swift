@@ -46,7 +46,7 @@ class CalendarService: CalendarServiceProviding {
         do {
             return try await performAccessRequest(for: type)
         } catch {
-            print("Calendar access error: \(error)")
+            Logger.log("Calendar access error: \(error)", category: .error)
             return false
         }
     }
@@ -136,7 +136,7 @@ class CalendarService: CalendarServiceProviding {
         do {
             try store.save(reminder, commit: true)
         } catch {
-            print("Failed to update reminder completion: \(error)")
+            Logger.log("Failed to update reminder completion: \(error)", category: .error)
         }
     }
 }

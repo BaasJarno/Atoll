@@ -33,7 +33,7 @@ private func cameraPropertyListener(
     let monitor = Unmanaged<CameraMonitor>.fromOpaque(context).takeUnretainedValue()
     
     DispatchQueue.main.async {
-        print("CameraMonitor: 📷 Camera property changed")
+        Logger.log("CameraMonitor: 📷 Camera property changed", category: .debug)
         monitor.checkCameraStatus()
     }
     
@@ -87,11 +87,11 @@ class CameraMonitor: ObservableObject {
     /// Start monitoring camera usage
     func startMonitoring() {
         guard !isMonitoring else {
-            print("CameraMonitor: Already monitoring, skipping start")
+            Logger.log("CameraMonitor: Already monitoring, skipping start", category: .warning)
             return
         }
         
-        print("CameraMonitor: 🟢 Starting camera monitoring...")
+        Logger.log("CameraMonitor: 🟢 Starting camera monitoring...", category: .debug)
         
         isMonitoring = true
         
@@ -99,9 +99,9 @@ class CameraMonitor: ObservableObject {
         cameraDeviceIDs = enumerateCameraDevices()
         
         if cameraDeviceIDs.isEmpty {
-            print("CameraMonitor: ⚠️ No camera devices found")
+            Logger.log("CameraMonitor: ⚠️ No camera devices found", category: .debug)
         } else {
-            print("CameraMonitor: 📷 Found \(cameraDeviceIDs.count) camera device(s)")
+            Logger.log("CameraMonitor: 📷 Found \(cameraDeviceIDs.count) camera device(s)", category: .debug)
         }
         
         // Setup event listener (CoreMediaIO approach)
@@ -110,17 +110,17 @@ class CameraMonitor: ObservableObject {
         // Check initial state
         checkCameraStatus()
         
-        print("CameraMonitor: ✅ Started monitoring (event-driven CMIO + AVFoundation check)")
+        Logger.log("CameraMonitor: ✅ Started monitoring (event-driven CMIO + AVFoundation check)", category: .debug)
     }
     
     /// Stop monitoring camera usage
     func stopMonitoring() {
         guard isMonitoring else {
-            print("CameraMonitor: Not monitoring, skipping stop")
+            Logger.log("CameraMonitor: Not monitoring, skipping stop", category: .warning)
             return
         }
         
-        print("CameraMonitor: 🛑 Stopping monitoring...")
+        Logger.log("CameraMonitor: 🛑 Stopping monitoring...", category: .debug)
         
         isMonitoring = false
         
@@ -135,7 +135,7 @@ class CameraMonitor: ObservableObject {
         }
         activeApp = nil
         
-        print("CameraMonitor: ✅ Stopped monitoring")
+        Logger.log("CameraMonitor: ✅ Stopped monitoring", category: .debug)
     }
     
     /// Toggle monitoring state
@@ -167,7 +167,7 @@ class CameraMonitor: ObservableObject {
         )
         
         guard status == OSStatus(kCMIOHardwareNoError), dataSize > 0 else {
-            print("CameraMonitor: ⚠️ Failed to get devices data size (status: \(status))")
+            Logger.log("CameraMonitor: ⚠️ Failed to get devices data size (status: \(status))", category: .error)
             return []
         }
         
@@ -185,7 +185,7 @@ class CameraMonitor: ObservableObject {
         )
         
         guard status == OSStatus(kCMIOHardwareNoError) else {
-            print("CameraMonitor: ⚠️ Failed to get devices (status: \(status))")
+            Logger.log("CameraMonitor: ⚠️ Failed to get devices (status: \(status))", category: .error)
             return []
         }
         
@@ -241,10 +241,10 @@ class CameraMonitor: ObservableObject {
             )
             
             if status == OSStatus(kCMIOHardwareNoError) {
-                print("CameraMonitor: ✅ Property listener registered for device \(deviceID)")
+                Logger.log("CameraMonitor: ✅ Property listener registered for device \(deviceID)", category: .debug)
                 isListenerRegistered = true
             } else {
-                print("CameraMonitor: ⚠️ Failed to register listener for device \(deviceID) (status: \(status))")
+                Logger.log("CameraMonitor: ⚠️ Failed to register listener for device \(deviceID) (status: \(status))", category: .error)
             }
         }
     }
@@ -270,9 +270,9 @@ class CameraMonitor: ObservableObject {
             )
             
             if status == OSStatus(kCMIOHardwareNoError) {
-                print("CameraMonitor: ✅ Property listener removed for device \(deviceID)")
+                Logger.log("CameraMonitor: ✅ Property listener removed for device \(deviceID)", category: .debug)
             } else {
-                print("CameraMonitor: ⚠️ Failed to remove listener for device \(deviceID) (status: \(status))")
+                Logger.log("CameraMonitor: ⚠️ Failed to remove listener for device \(deviceID) (status: \(status))", category: .error)
             }
         }
         
@@ -340,22 +340,22 @@ class CameraMonitor: ObservableObject {
         let isActive = isCMIOActive || isAVActive
         
         // Debug logging
-        print("CameraMonitor: 🔍 Checking... current=\(isCameraActive), CMIO=\(isCMIOActive), AV=\(isAVActive), final=\(isActive)")
+        Logger.log("CameraMonitor: 🔍 Checking... current=\(isCameraActive), CMIO=\(isCMIOActive), AV=\(isAVActive), final=\(isActive)", category: .debug)
         
         // Update state if changed
         if isActive != isCameraActive {
-            print("CameraMonitor: 🔄 State change detected (\(isCameraActive) -> \(isActive))")
+            Logger.log("CameraMonitor: 🔄 State change detected (\(isCameraActive) -> \(isActive))", category: .debug)
             
             withAnimation(.smooth) {
                 isCameraActive = isActive
             }
             
             if isActive {
-                print("CameraMonitor: 📷 Camera ACTIVE")
+                Logger.log("CameraMonitor: 📷 Camera ACTIVE", category: .debug)
                 // Could try to identify app here (TODO: investigate)
                 activeApp = "Unknown App"
             } else {
-                print("CameraMonitor: ⚪ Camera INACTIVE")
+                Logger.log("CameraMonitor: ⚪ Camera INACTIVE", category: .debug)
                 activeApp = nil
             }
         }

@@ -574,7 +574,7 @@ final class ShelfItemViewModel: ObservableObject {
                                 try await NSWorkspace.shared.open(allSelectedURLs, withApplicationAt: appURL, configuration: config)
                             }
                         } catch {
-                            print("❌ Failed to open with application: \(error.localizedDescription)")
+                            Logger.log("Failed to open with application: \(error.localizedDescription)", category: .error)
                         }
                 }
                 return
@@ -713,7 +713,7 @@ final class ShelfItemViewModel: ObservableObject {
                             }
                         }
                     } catch {
-                        print("❌ Compress failed: \(error)")
+                        Logger.log("Compress failed: \(error)", category: .error)
                     }
                 }
                 
@@ -879,7 +879,7 @@ final class ShelfItemViewModel: ObservableObject {
                                 try await NSWorkspace.shared.open([fileURL], withApplicationAt: appURL, configuration: config)
                             }
                         } catch {
-                            print("❌ Failed to open with application: \(error.localizedDescription)")
+                            Logger.log("Failed to open with application: \(error.localizedDescription)", category: .error)
                         }
                     }
                 }
@@ -919,7 +919,7 @@ final class ShelfItemViewModel: ObservableObject {
                                         )
                                     }
                                 } catch {
-                                    print("❌ Failed to rename file: \(error.localizedDescription)")
+                                    Logger.log("Failed to rename file: \(error.localizedDescription)", category: .error)
                                 }
                                 if didStart { fileURL.stopAccessingSecurityScopedResource() }
                             }
@@ -955,7 +955,7 @@ final class ShelfItemViewModel: ObservableObject {
                         }
                     }
                 } catch {
-                    print("❌ Failed to remove background: \(error.localizedDescription)")
+                    Logger.log("Failed to remove background: \(error.localizedDescription)", category: .error)
                     await showErrorAlert(title: "Background Removal Failed", message: error.localizedDescription)
                 }
             }
@@ -985,7 +985,7 @@ final class ShelfItemViewModel: ObservableObject {
                         }
                     }
                 } catch {
-                    print("❌ Failed to create PDF: \(error.localizedDescription)")
+                    Logger.log("Failed to create PDF: \(error.localizedDescription)", category: .error)
                     await showErrorAlert(title: "PDF Creation Failed", message: error.localizedDescription)
                 }
             }
@@ -1193,7 +1193,7 @@ final class ShelfItemViewModel: ObservableObject {
                             }
                         }
                     } catch {
-                        print("❌ Failed to convert image: \(error.localizedDescription)")
+                        Logger.log("Failed to convert image: \(error.localizedDescription)", category: .error)
                         showErrorAlert(title: "Image Conversion Failed", message: error.localizedDescription)
                     }
                 }

@@ -213,7 +213,7 @@ class FilteredNowPlayingController: ObservableObject, MediaControllerProtocol {
                     .trimmingCharacters(in: .whitespacesAndNewlines),
                   !message.isEmpty
             else { return }
-            print("\(logName) [stderr]: \(message)")
+            Logger.log("\(logName) [stderr]: \(message)", category: .debug)
         }
 
         self.process = process

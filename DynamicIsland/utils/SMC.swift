@@ -304,7 +304,7 @@ public class SMC {
                 
                 return (c1 + c2 + c3 + c4 + c5 + c6 + c7 + c8 + c9 + c10 + c11 + c12).trimmingCharacters(in: .whitespaces)
             default:
-                print("unsupported data type \(val.dataType) for key: \(key)")
+                Logger.log("unsupported data type \(val.dataType) for key: \(key)", category: .debug)
                 return nil
             }
         }
@@ -317,7 +317,7 @@ public class SMC {
         
         let keysNum: Double? = self.getValue("#KEY")
         if keysNum == nil {
-            print("ERROR no keys count found")
+            Logger.log("ERROR no keys count found", category: .error)
             return list
         }
         
@@ -435,7 +435,7 @@ public class SMC {
         let maxSpeed = Int(self.getValue("F\(id)Mx") ?? 4000)
         
         if speed > maxSpeed {
-            print("new fan speed (\(speed)) is more than maximum speed (\(maxSpeed))")
+            Logger.log("new fan speed (\(speed)) is more than maximum speed (\(maxSpeed))", category: .debug)
             return
         }
         

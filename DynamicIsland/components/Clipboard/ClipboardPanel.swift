@@ -682,6 +682,6 @@ private struct ClipboardRowActionButton: View {
 
 #Preview {
     ClipboardPanelView {
-        print("Close panel")
+        Logger.log("Close panel", category: .debug)
     }
 }
