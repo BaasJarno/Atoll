@@ -70,14 +70,29 @@ jobs:
         run: |
           sudo DevToolsSecurity -enable
 
-          # Strip mach-services entitlement (amfid kills ad-hoc app); ignore only "key absent".
-          if ! plutil_out=$(plutil -remove com.apple.security.mach-services DynamicIsland/DynamicIsland.entitlements 2>&1); then
-            if printf '%s' "$plutil_out" | grep -q "No value to remove"; then
-              echo "mach-services entitlement already absent, continuing."
-            else
-              echo "::error::plutil failed to modify entitlements: $plutil_out"
+          # Strip mach-services entitlement (amfid kills ad-hoc app).
+          #
+          # This used `plutil -remove`, which never worked: plutil reads a key
+          # path with `.` as its separator, so it looked for a key "com" holding
+          # "apple" holding "security" and reported "No value to remove at key
+          # path" -- which the old code then treated as "already absent" and
+          # carried on. The entitlement was still there every time.
+          #
+          # PlistBuddy separates a key path with `:`, so a key containing dots
+          # is addressable. The removal is verified rather than assumed.
+          ENTITLEMENTS=DynamicIsland/DynamicIsland.entitlements
+          if /usr/libexec/PlistBuddy -c "Print :com.apple.security.mach-services" "$ENTITLEMENTS" >/dev/null 2>&1; then
+            if ! pb_out=$(/usr/libexec/PlistBuddy -c "Delete :com.apple.security.mach-services" "$ENTITLEMENTS" 2>&1); then
+              echo "::error::PlistBuddy failed to modify entitlements: $pb_out"
               exit 1
             fi
+          else
+            echo "mach-services entitlement already absent, continuing."
+          fi
+
+          if grep -q "mach-services" "$ENTITLEMENTS"; then
+            echo "::error::mach-services entitlement still present after removal."
+            exit 1
           fi
 
           xcodebuild build \
