@@ -1,0 +1,141 @@
+# SwiftLint configuration for Atoll.
+#
+# Two constraints shaped this file.
+#
+# First, the codebase predates the linter: a default configuration reports
+# roughly 6,200 violations, and a linter nobody can satisfy is a linter nobody
+# reads. So the rules kept here are the ones that say something about the code,
+# and the ones that only say something about whitespace are off.
+#
+# Second, this is a fork that still tracks upstream. Anything that rewrites
+# thousands of untouched lines — trailing whitespace, brace placement, comma
+# spacing — buys nothing and turns every future merge into a conflict. Those
+# rules are disabled rather than auto-fixed for that reason alone; if this ever
+# stops following upstream, `swiftlint --fix` handles most of them in one pass.
+#
+# The length and complexity rules stay on as warnings even though the codebase
+# does not pass them. They are the honest measure of the debt here (one view
+# file is over 9,000 lines) and they flag new growth, which is what they are
+# for. Do not raise the thresholds past the current worst offender to reach a
+# green run — that turns a real signal into decoration.
+
+included:
+  - DynamicIsland
+  - DynamicIslandTests
+  - DynamicIslandUITests
+
+excluded:
+  - DynamicIsland/Localizable.xcstrings
+  - DynamicIslandSamples
+  - Frameworks
+  - mediaremote-adapter
+  - Updates
+  - .build
+  - build
+
+disabled_rules:
+  # Formatting only. See the note above: each of these would rewrite lines that
+  # are otherwise fine, across nearly every file, for no behavioural gain.
+  - trailing_whitespace          # 3,487 hits, all whitespace at end of line
+  - vertical_whitespace
+  - trailing_newline
+  - colon
+  - comma
+  - opening_brace
+  - statement_position
+  - switch_case_alignment
+  - closure_parameter_position
+  - comment_spacing
+  - trailing_comma
+
+  # Idiomatic in SwiftUI, flagged by a rule written for UIKit call sites.
+  - multiple_closures_with_trailing_closure
+
+  # This codebase consistently writes `var x: T? = nil`. Reasonable people
+  # differ; it is not worth 63 diffs to settle.
+  - implicit_optional_initialization
+
+  # 244 of these are single-letter or underscore-prefixed names inside short
+  # closures and generic algorithms, where a longer name would not help.
+  - identifier_name
+
+opt_in_rules:
+  # Correctness, and the codebase is already close to clean on all of them.
+  - force_unwrapping
+  - empty_count
+  - empty_string
+  - first_where
+  - last_where
+  - contains_over_filter_count
+  - contains_over_first_not_nil
+  - redundant_nil_coalescing
+  - unowned_variable_capture
+  - weak_delegate
+  - discouraged_optional_boolean
+  - overridden_super_call
+  - prohibited_super_call
+
+  # Concurrency and lifetime, which is where this app's real bugs live.
+  - unneeded_synthesized_initializer
+
+analyzer_rules:
+  - unused_declaration
+  - unused_import
+
+# Length and complexity: warnings, deliberately not errors. The backlog is
+# real, so an error level would only teach everyone to pass --no-strict.
+#
+# 140 is measured, not guessed. Across the 116,000 lines of app source the
+# median line is 35 characters and the 99th percentile is 123, so this project
+# already writes short lines; the ~620 lines past 140 are the top half-percent
+# and genuinely unusual for this codebase rather than its house style. The
+# longest single line is 514 characters.
+line_length:
+  warning: 140
+  error: 300
+  ignores_urls: true
+  ignores_comments: false
+  ignores_function_declarations: false
+
+file_length:
+  warning: 600
+  error: 12000        # SettingsView.swift is ~9,700 lines and must not grow
+  ignore_comment_only_lines: true
+
+type_body_length:
+  warning: 400
+  error: 10000
+
+function_body_length:
+  warning: 80
+  error: 400
+
+cyclomatic_complexity:
+  warning: 15
+  error: 40
+  ignores_case_statements: true
+
+large_tuple:
+  warning: 3
+  error: 5
+
+nesting:
+  type_level: 2
+  function_level: 4
+
+function_parameter_count:
+  warning: 7
+  error: 10
+
+type_name:
+  min_length: 3
+  max_length:
+    warning: 50
+    error: 60
+
+# `as!` traps at runtime. There are five, all in app code, and each one is a
+# crash waiting for the wrong input — worth an error rather than a warning.
+force_cast: error
+force_try: error
+
+reporter: xcode
