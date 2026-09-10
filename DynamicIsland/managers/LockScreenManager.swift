@@ -263,6 +263,7 @@ class LockScreenManager: ObservableObject {
         LockScreenLiveActivityWindowManager.shared.showLocked()
         LockScreenWeatherManager.shared.showWeatherWidget()
         LockScreenTimerWidgetManager.shared.handleLockStateChange(isLocked: true)
+        ClipboardManager.shared.handleLockStateChange(isLocked: true)
         
         // THEN trigger lock icon in Atoll (only if enabled in settings)
         if Defaults[.enableLockScreenLiveActivity] {
@@ -331,6 +332,7 @@ class LockScreenManager: ObservableObject {
         LockScreenLiveActivityWindowManager.shared.showUnlockAndScheduleHide()
         LockScreenWeatherManager.shared.hideWeatherWidget()
         LockScreenTimerWidgetManager.shared.handleLockStateChange(isLocked: false)
+        ClipboardManager.shared.handleLockStateChange(isLocked: false)
         
         // Update state immediately
         if Defaults[.enableLockScreenLiveActivity] {
