@@ -119,8 +119,8 @@ struct NotchStatsView: View {
         if showNetworkGraph {
             graphs.append(DualGraphData(
                 title: String(localized: "Network"),
-                positiveValue: "↓" + statsManager.networkDownloadString,
-                negativeValue: "↑" + statsManager.networkUploadString,
+                positiveValue: "↓" + StatsFormatting.compactThroughput(statsManager.networkDownload),
+                negativeValue: "↑" + StatsFormatting.compactThroughput(statsManager.networkUpload),
                 positiveData: statsManager.networkDownloadHistory,
                 negativeData: statsManager.networkUploadHistory,
                 positiveColor: .orange,
@@ -134,8 +134,8 @@ struct NotchStatsView: View {
         if showDiskGraph {
             graphs.append(DualGraphData(
                 title: String(localized: "Disk"),
-                positiveValue: String(localized: "R ") + statsManager.diskReadString,
-                negativeValue: String(localized: "W ") + statsManager.diskWriteString,
+                positiveValue: String(localized: "R ") + StatsFormatting.compactThroughput(statsManager.diskRead),
+                negativeValue: String(localized: "W ") + StatsFormatting.compactThroughput(statsManager.diskWrite),
                 positiveData: statsManager.diskReadHistory,
                 negativeData: statsManager.diskWriteHistory,
                 positiveColor: .cyan,
@@ -410,12 +410,12 @@ struct NotchStatsView: View {
         if vm.isStatsPopoverActive != newState {
             vm.isStatsPopoverActive = newState
             #if DEBUG
-            print("📊 Stats popover state updated: \(newState)")
-            print("   CPU open=\(showingCPUPopover)")
-            print("   Memory open=\(showingMemoryPopover)")
-            print("   GPU open=\(showingGPUPopover)")
-            print("   Network open=\(showingNetworkPopover)")
-            print("   Disk open=\(showingDiskPopover)")
+            Logger.log("Stats popover state updated: \(newState)", category: .debug)
+            Logger.log("CPU open=\(showingCPUPopover)", category: .debug)
+            Logger.log("Memory open=\(showingMemoryPopover)", category: .debug)
+            Logger.log("GPU open=\(showingGPUPopover)", category: .debug)
+            Logger.log("Network open=\(showingNetworkPopover)", category: .debug)
+            Logger.log("Disk open=\(showingDiskPopover)", category: .debug)
             #endif
         }
     }
@@ -425,51 +425,60 @@ struct NotchStatsView: View {
 struct UnifiedStatsCard: View {
     let graphData: GraphData
     @State private var isHovered = false
-    
+
+    /// The card's reading, sized to its content so it is never clipped. A dual
+    /// card shows both directions side by side; the arrows and the R/W labels
+    /// tell them apart, so no separator is needed between them.
+    @ViewBuilder
+    private var valueLabel: some View {
+        if let singleData = graphData as? SingleGraphData {
+            Text(singleData.value)
+                .font(.caption) // Match boring.notch font size
+                .fontWeight(.bold)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+        } else if let dualData = graphData as? DualGraphData {
+            HStack(spacing: 5) {
+                Text(dualData.positiveValue)
+                    .foregroundColor(dualData.positiveColor)
+                Text(dualData.negativeValue)
+                    .foregroundColor(dualData.negativeColor)
+            }
+            .font(.caption)
+            .fontWeight(.semibold)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 3) { // Match boring.notch spacing
-            // Header - consistent across all card types
+            // Header: icon and title on the left, the reading on the right.
+            // Every card type puts its value in the same place, which is what
+            // #826 asked for -- the network card used to stack two figures on
+            // a row of their own, so it did not line up with the others.
             HStack(spacing: 4) {
                 Image(systemName: graphData.icon)
                     .foregroundStyle(graphData.color)
                     .font(.caption) // Match boring.notch font size
-                
+
                 Text(graphData.title)
                     .font(.caption) // Match boring.notch font size
                     .fontWeight(.medium)
                     .foregroundStyle(Color.white.opacity(0.8))
-                
-                Spacer()
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                Spacer(minLength: 4)
+
+                // The reading is the point of the card, so it keeps its full
+                // width and the title gives way -- at three columns a card is
+                // only about 180 points wide.
+                valueLabel
+                    .layoutPriority(1)
             }
-            
-            // Values section - same height for every card so the grid boxes match
-            Group {
-                if let singleData = graphData as? SingleGraphData {
-                    Text(singleData.value)
-                        .font(.caption) // Match boring.notch font size
-                        .fontWeight(.bold)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                } else if let dualData = graphData as? DualGraphData {
-                    HStack(spacing: 6) {
-                        Text(dualData.positiveValue)
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(dualData.positiveColor)
-                        
-                        Text("•")
-                            .font(.caption2)
-                            .foregroundStyle(Color.white.opacity(0.45))
-                        
-                        Text(dualData.negativeValue)
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(dualData.negativeColor)
-                    }
-                }
-            }
-            .frame(height: 18) // Fixed height for the values section
-            
+
             // Graph section - adapts based on graph type
             Group {
                 if let singleData = graphData as? SingleGraphData {
